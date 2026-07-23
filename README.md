@@ -46,18 +46,26 @@ Windows x64/arm64, Linux x64/arm64, macOS — self-contained, unsigned.
 
 macOS: first launch may require **System Settings → Privacy & Security → Open Anyway**.
 
-### CI publish artifacts
+### CI
 
-Every `build-check` run (push / PR / manual) uploads **self-contained** publish folders (**.NET 10 runtime included**) after tests pass. Each folder also bundles **MediaInfo native**:
+| Trigger | Workflow | What runs |
+| --- | --- | --- |
+| **Push** to `main` | `build-check` | Quick **managed** restore / build / unit tests only (no native MediaInfo, no multi-RID publish) |
+| **Pull request** | `build-check` → `publish-bundled` | Tests, then **full** self-contained publish for all RIDs with MediaInfo native bundled |
+| **draft-release** (manual) | `draft-release` → `publish-bundled` | Same full packages; with `dry_run=false` attaches zips to a GitHub **draft** release |
+| Manual | `publish-bundled` or `build-check` with *publish_bundled* | Full packages on demand |
+
+Bundled package artifacts (PR / draft-release / manual):
 
 | Artifact name | Contents |
 | --- | --- |
 | `publish-win-x64` / `publish-win-arm64` | Self-contained Windows + `MediaInfo.dll` |
 | `publish-linux-x64` / `publish-linux-arm64` | Self-contained Linux + `libmediainfo.so` |
 | `publish-osx-arm64` / `publish-osx-x64` | Self-contained macOS + `libmediainfo.dylib` |
-| `app-bundle-osx-arm64` / `app-bundle-osx-x64` | Unsigned `.app.zip` (includes dylib) |
+| `publish-zip-*` | Zip of each publish folder (release-friendly) |
+| `app-bundle-osx-arm64` / `app-bundle-osx-x64` | Unsigned `.app.zip` |
 
-Native is built per RID via `./native/build-rid.sh <rid>` (osx-x64 cross-builds on Apple Silicon; win-arm64 cross-builds with MSVC). Download from the Actions run summary.
+**.NET 10 runtime is included** (self-contained). Native is built per RID via `./native/build-rid.sh`.
 
 ### macOS `.app` (unsigned)
 

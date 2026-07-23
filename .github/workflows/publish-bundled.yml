@@ -1,0 +1,221 @@
+# Self-contained multi-RID publish with MediaInfo native bundled.
+# Called from pull_request (via build-check) and draft-release; also manual dispatch.
+name: publish-bundled
+
+on:
+  workflow_call:
+    inputs:
+      version_label:
+        description: "CFBundle / package version label"
+        required: false
+        type: string
+        default: "0.0.0-ci"
+  workflow_dispatch:
+    inputs:
+      version_label:
+        description: "Version label for packages (optional)"
+        required: false
+        type: string
+        default: "0.0.0-ci"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-latest
+            msvc_arch: x64
+          - rid: win-arm64
+            os: windows-latest
+            msvc_arch: amd64_arm64
+          - rid: linux-x64
+            os: ubuntu-latest
+            msvc_arch: ""
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+            msvc_arch: ""
+          - rid: osx-arm64
+            os: macos-14
+            msvc_arch: ""
+          - rid: osx-x64
+            os: macos-14
+            msvc_arch: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Resolve version label
+        id: ver
+        shell: bash
+        run: |
+          input="${{ inputs.version_label }}"
+          if [[ -z "$input" || "$input" == "0.0.0-ci" ]]; then
+            sha="$(git rev-parse --short HEAD)"
+            echo "label=0.0.0-ci.${sha}" >> "$GITHUB_OUTPUT"
+          else
+            echo "label=${input}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install native build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+
+      - name: Install native build tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev
+
+      - name: Install native build tools (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: choco install ninja -y --no-progress
+
+      - name: Setup MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
+      - name: Publish self-contained (non-single-file)
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="artifacts/publish/${{ matrix.rid }}"
+          mkdir -p "$out"
+          dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
+            -c Release \
+            -r "${{ matrix.rid }}" \
+            --self-contained true \
+            -p:PublishSingleFile=false \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
+            -o "$out"
+          find "$out" -name '*.pdb' -delete 2>/dev/null || true
+          echo "Published to $out ($(du -sh "$out" | cut -f1))"
+
+      - name: Build MediaInfo native for RID
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x native/build-rid.sh native/stage-into-publish.sh
+          ./native/build-rid.sh "${{ matrix.rid }}"
+
+      - name: Stage MediaInfo into publish folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x native/stage-into-publish.sh
+          ./native/stage-into-publish.sh "${{ matrix.rid }}" "artifacts/publish/${{ matrix.rid }}"
+          rid="${{ matrix.rid }}"
+          out="artifacts/publish/${rid}"
+          case "$rid" in
+            win-*)  test -f "$out/MediaInfo.dll" || test -f "$out/mediainfo.dll" ;;
+            osx-*)  test -f "$out/libmediainfo.dylib" ;;
+            linux-*) test -f "$out/libmediainfo.so" ;;
+          esac
+          echo "MediaInfo native verified in $out"
+
+      - name: Pack unsigned macOS .app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rid="${{ matrix.rid }}"
+          chmod +x scripts/pack-macos-app.sh
+          ./scripts/pack-macos-app.sh \
+            --publish-dir "artifacts/publish/${rid}" \
+            --out "artifacts/app/MediainfoProjectNg.Next-${rid}.app" \
+            --rid "$rid" \
+            --version "${{ steps.ver.outputs.label }}" \
+            --dylib "artifacts/publish/${rid}/libmediainfo.dylib"
+          mkdir -p artifacts/app-zip
+          (
+            cd artifacts/app
+            ditto -c -k --keepParent "MediainfoProjectNg.Next-${rid}.app" \
+              "../app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
+          )
+          ls -lh "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
+
+      - name: Zip publish folder (for release assets)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rid="${{ matrix.rid }}"
+          mkdir -p artifacts/publish-zip
+          (
+            cd artifacts/publish
+            if command -v zip >/dev/null 2>&1; then
+              zip -r -q "../publish-zip/MediainfoProjectNg.Next-${rid}.zip" "${rid}"
+            else
+              # Windows runners often have tar; prefer 7z if present
+              if command -v 7z >/dev/null 2>&1; then
+                7z a -tzip "../publish-zip/MediainfoProjectNg.Next-${rid}.zip" "./${rid}/*" >/dev/null
+              else
+                tar -a -cf "../publish-zip/MediainfoProjectNg.Next-${rid}.zip" "${rid}"
+              fi
+            fi
+          )
+          ls -lh "artifacts/publish-zip/MediainfoProjectNg.Next-${rid}.zip"
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          rid="${{ matrix.rid }}"
+          out="artifacts/publish/${rid}"
+          {
+            echo "## publish (${rid}) — MediaInfo bundled"
+            echo ""
+            echo "- runner: \`${{ matrix.os }}\`"
+            echo "- version label: \`${{ steps.ver.outputs.label }}\`"
+            if [[ -d "$out" ]]; then
+              echo "- publish size: \`$(du -sh "$out" | cut -f1)\`"
+            fi
+            bundled="no"
+            case "$rid" in
+              win-*) [[ -f "$out/MediaInfo.dll" || -f "$out/mediainfo.dll" ]] && bundled="yes" ;;
+              osx-*) [[ -f "$out/libmediainfo.dylib" ]] && bundled="yes" ;;
+              linux-*) [[ -f "$out/libmediainfo.so" ]] && bundled="yes" ;;
+            esac
+            echo "- MediaInfo native: **${bundled}**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload publish folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-${{ matrix.rid }}
+          path: artifacts/publish/${{ matrix.rid }}/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
+
+      - name: Upload publish zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-zip-${{ matrix.rid }}
+          path: artifacts/publish-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload macOS .app zip
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-bundle-${{ matrix.rid }}
+          path: artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -1,5 +1,5 @@
-# Manual draft GitHub release. Default is dry-run (no release created).
-# When packaging exists, attach multi-RID publish / .app artifacts here.
+# Manual draft release: build MediaInfo-bundled multi-RID packages, then optionally
+# create a GitHub draft release with those assets.
 name: draft-release
 
 on:
@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       dry_run:
-        description: "If true, only print planned steps (no release created)"
+        description: "If true, still build packages but do not create a GitHub release"
         required: false
         type: boolean
         default: true
@@ -19,9 +19,13 @@ permissions:
   contents: write
 
 jobs:
-  draft:
-    name: Create draft release
+  version:
+    name: Normalize version
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      name: ${{ steps.ver.outputs.name }}
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - name: Normalize version
         id: ver
@@ -37,11 +41,6 @@ jobs:
           echo "name=v${raw}" >> "$GITHUB_OUTPUT"
           echo "version=${raw}" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-
       - name: Plan
         shell: bash
         run: |
@@ -51,34 +50,74 @@ jobs:
           version : ${{ steps.ver.outputs.version }}
           tag     : ${{ steps.ver.outputs.tag }}
           dry_run : ${{ inputs.dry_run }}
-          notes   : scaffold — attach multi-RID publish / unsigned .app when packaging is ready
+          packages: full MediaInfo-bundled multi-RID publish (all platforms/arches)
           EOF
 
-      - name: Collect artifacts (stub)
-        if: ${{ !inputs.dry_run }}
+  # Always build bundled packages on draft-release (dry_run only skips GitHub Release create).
+  publish-bundled:
+    name: publish-bundled
+    needs: version
+    uses: ./.github/workflows/publish-bundled.yml
+    with:
+      version_label: ${{ needs.version.outputs.version }}
+
+  release:
+    name: Create draft release
+    needs: [version, publish-bundled]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: '{publish-zip-*,app-bundle-*}'
+          merge-multiple: true
+
+      - name: List release assets
         shell: bash
         run: |
-          mkdir -p dist
-          echo "TODO: download workflow artifacts for ${{ steps.ver.outputs.tag }} into dist/"
-          echo "placeholder — packaging not wired yet" > dist/README-RELEASE.txt
+          find dist -type f | sort
+          mkdir -p release-assets
+          # Flatten zips into release-assets/
+          find dist -type f \( -name '*.zip' -o -name '*.app.zip' \) -exec cp -f {} release-assets/ \;
+          ls -lah release-assets/
 
       - name: Create GitHub draft release
-        if: ${{ !inputs.dry_run }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.ver.outputs.tag }}
-          name: ${{ steps.ver.outputs.name }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.name }}
           draft: true
           prerelease: false
           generate_release_notes: true
           body: |
-            Draft release **${{ steps.ver.outputs.name }}** (scaffold).
+            Draft release **${{ needs.version.outputs.name }}**.
 
-            Attach self-contained, non-single-file binaries (and unsigned macOS `.app` when available).
-          files: dist/**
+            Self-contained packages (**.NET 10 runtime included**) with **MediaInfo native bundled**:
+
+            | Asset | Platform |
+            | --- | --- |
+            | `MediainfoProjectNg.Next-win-x64.zip` | Windows x64 |
+            | `MediainfoProjectNg.Next-win-arm64.zip` | Windows ARM64 |
+            | `MediainfoProjectNg.Next-linux-x64.zip` | Linux x64 |
+            | `MediainfoProjectNg.Next-linux-arm64.zip` | Linux ARM64 |
+            | `MediainfoProjectNg.Next-osx-arm64.zip` | macOS Apple Silicon |
+            | `MediainfoProjectNg.Next-osx-x64.zip` | macOS Intel |
+            | `MediainfoProjectNg.Next-osx-*.app.zip` | Unsigned macOS `.app` bundles |
+
+            macOS: first open may need **Privacy & Security → Open Anyway**.
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Dry-run complete
-        if: ${{ inputs.dry_run }}
-        run: echo "Dry run only — no release created for ${{ steps.ver.outputs.tag }}"
+  dry-run-note:
+    name: Dry-run note
+    needs: [version, publish-bundled]
+    if: ${{ inputs.dry_run }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Dry run: packages were built (see workflow artifacts publish-* / publish-zip-* / app-bundle-*)."
+          echo "No GitHub release created for ${{ needs.version.outputs.tag }}."
+          echo "Re-run with dry_run=false to attach assets to a draft release."

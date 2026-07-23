@@ -1,4 +1,5 @@
-# Every run: managed build/test, then self-contained publish with MediaInfo native bundled.
+# Quick gate on every push: managed compile + unit tests only (no native bundle).
+# Full MediaInfo-bundled multi-RID publish runs on pull_request (and via publish-bundled).
 name: build-check
 
 on:
@@ -7,6 +8,12 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      publish_bundled:
+        description: "Also run full MediaInfo-bundled multi-platform publish"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: build-check-${{ github.workflow }}-${{ github.ref }}
@@ -17,7 +24,7 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Primary gate: full solution build + unit tests (no native MediaInfo required)
+  # Always: solution build + unit tests (no MediaInfo native / no multi-RID publish)
   # ---------------------------------------------------------------------------
   managed:
     name: managed (build + test)
@@ -53,194 +60,29 @@ jobs:
           name: managed-test-results
           path: TestResults/**/*.trx
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
 
-  # ---------------------------------------------------------------------------
-  # Self-contained publish + MediaInfo native for every RID
-  # ---------------------------------------------------------------------------
-  publish:
-    name: publish (${{ matrix.rid }})
-    needs: managed
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - rid: win-x64
-            os: windows-latest
-            msvc_arch: x64
-          - rid: win-arm64
-            os: windows-latest
-            # Cross-compile ARM64 from x64 MSVC host tools
-            msvc_arch: amd64_arm64
-          - rid: linux-x64
-            os: ubuntu-latest
-            msvc_arch: ""
-          - rid: linux-arm64
-            os: ubuntu-24.04-arm
-            msvc_arch: ""
-          - rid: osx-arm64
-            os: macos-14
-            msvc_arch: ""
-          - rid: osx-x64
-            os: macos-14
-            msvc_arch: ""
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 1
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Resolve version label
-        id: ver
-        shell: bash
-        run: |
-          sha="$(git rev-parse --short HEAD)"
-          echo "label=0.0.0-ci.${sha}" >> "$GITHUB_OUTPUT"
-          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
-
-      - name: Install native build tools (macOS)
-        if: runner.os == 'macOS'
-        run: brew install cmake ninja
-
-      - name: Install native build tools (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev
-
-      - name: Install native build tools (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: choco install ninja -y --no-progress
-
-      - name: Setup MSVC environment (Windows)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.msvc_arch }}
-
-      - name: Publish self-contained (non-single-file)
-        shell: bash
-        run: |
-          set -euo pipefail
-          out="artifacts/publish/${{ matrix.rid }}"
-          mkdir -p "$out"
-          dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
-            -c Release \
-            -r "${{ matrix.rid }}" \
-            --self-contained true \
-            -p:PublishSingleFile=false \
-            -p:DebugType=None \
-            -p:DebugSymbols=false \
-            -o "$out"
-          find "$out" -name '*.pdb' -delete 2>/dev/null || true
-          echo "Published to $out ($(du -sh "$out" | cut -f1))"
-
-      - name: Build MediaInfo native for RID
-        shell: bash
-        run: |
-          set -euo pipefail
-          chmod +x native/build-rid.sh native/stage-into-publish.sh
-          ./native/build-rid.sh "${{ matrix.rid }}"
-
-      - name: Stage MediaInfo into publish folder
-        shell: bash
-        run: |
-          set -euo pipefail
-          chmod +x native/stage-into-publish.sh
-          ./native/stage-into-publish.sh "${{ matrix.rid }}" "artifacts/publish/${{ matrix.rid }}"
-          # Fail the job if loader-expected name is missing.
-          rid="${{ matrix.rid }}"
-          out="artifacts/publish/${rid}"
-          case "$rid" in
-            win-*)
-              test -f "$out/MediaInfo.dll" || test -f "$out/mediainfo.dll"
-              ;;
-            osx-*)
-              test -f "$out/libmediainfo.dylib"
-              ;;
-            linux-*)
-              test -f "$out/libmediainfo.so"
-              ;;
-          esac
-          echo "MediaInfo native verified in $out"
-
-      - name: Pack unsigned macOS .app
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          chmod +x scripts/pack-macos-app.sh
-          ./scripts/pack-macos-app.sh \
-            --publish-dir "artifacts/publish/${rid}" \
-            --out "artifacts/app/MediainfoProjectNg.Next-${rid}.app" \
-            --rid "$rid" \
-            --version "${{ steps.ver.outputs.label }}" \
-            --dylib "artifacts/publish/${rid}/libmediainfo.dylib"
-          mkdir -p artifacts/app-zip
-          (
-            cd artifacts/app
-            ditto -c -k --keepParent "MediainfoProjectNg.Next-${rid}.app" \
-              "../app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
-          )
-          ls -lh "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
-
-      - name: Job summary
+      - name: Summary
         if: always()
         shell: bash
         run: |
-          rid="${{ matrix.rid }}"
-          out="artifacts/publish/${rid}"
           {
-            echo "## publish (${rid})"
+            echo "## build-check (quick)"
             echo ""
-            echo "- runner: \`${{ matrix.os }}\`"
-            echo "- version label: \`${{ steps.ver.outputs.label }}\`"
-            if [[ -d "$out" ]]; then
-              echo "- publish size: \`$(du -sh "$out" | cut -f1)\`"
-            fi
-            bundled="no"
-            case "$rid" in
-              win-*)
-                if [[ -f "$out/MediaInfo.dll" || -f "$out/mediainfo.dll" ]]; then bundled="yes"; fi
-                ;;
-              osx-*)
-                if [[ -f "$out/libmediainfo.dylib" ]]; then bundled="yes"; fi
-                ;;
-              linux-*)
-                if [[ -f "$out/libmediainfo.so" ]]; then bundled="yes"; fi
-                ;;
-            esac
-            if [[ "$bundled" == "yes" ]]; then
-              echo "- MediaInfo native: **bundled**"
-            else
-              echo "- MediaInfo native: **NOT bundled**"
-            fi
-            if [[ -f "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip" ]]; then
-              echo "- macOS app zip: \`$(du -sh "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip" | cut -f1)\`"
-            fi
+            echo "- event: \`${{ github.event_name }}\`"
+            echo "- managed compile + tests only on **push**"
+            echo "- MediaInfo-bundled multi-RID publish: **pull_request**, **draft-release**, or manual **publish-bundled** / build-check with publish_bundled=true"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload publish folder
-        uses: actions/upload-artifact@v4
-        with:
-          name: publish-${{ matrix.rid }}
-          path: artifacts/publish/${{ matrix.rid }}/
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 6
-
-      - name: Upload macOS .app zip
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-bundle-${{ matrix.rid }}
-          path: artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip
-          if-no-files-found: error
-          retention-days: 14
+  # ---------------------------------------------------------------------------
+  # PR (and optional manual): full self-contained + MediaInfo for all RIDs
+  # ---------------------------------------------------------------------------
+  publish-bundled:
+    name: publish-bundled
+    needs: managed
+    if: >
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_bundled == true)
+    uses: ./.github/workflows/publish-bundled.yml
+    with:
+      version_label: "0.0.0-ci"

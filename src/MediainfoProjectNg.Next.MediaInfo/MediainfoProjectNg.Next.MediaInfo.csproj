@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MediainfoProjectNg.Next.Domain\MediainfoProjectNg.Next.Domain.csproj" />
+    <ProjectReference Include="..\MediainfoProjectNg.Next.Core\MediainfoProjectNg.Next.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <RootNamespace>MediainfoProjectNg.Next.MediaInfo</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,155 @@
+# Managed build/test gate (always on). Native + publish matrix scaffolded but disabled until ready.
+name: build-check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: build-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Primary gate: full solution build + unit tests (no native MediaInfo required)
+  # ---------------------------------------------------------------------------
+  managed:
+    name: managed (build + test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore solution
+        run: dotnet restore MediainfoProjectNg.Next.sln
+
+      - name: Build solution (Release)
+        run: dotnet build MediainfoProjectNg.Next.sln --no-restore -c Release
+
+      - name: Test
+        run: >
+          dotnet test tests/MediainfoProjectNg.Next.Tests/MediainfoProjectNg.Next.Tests.csproj
+          --no-build -c Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: managed-test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Scaffold: native MediaInfoLib build matrix (disabled — enable when CI native is ready)
+  # ---------------------------------------------------------------------------
+  native:
+    name: native (${{ matrix.rid }})
+    needs: managed
+    if: ${{ false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: osx-arm64
+            os: macos-14
+          - rid: osx-x64
+            os: macos-14
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+          - rid: win-x64
+            os: windows-latest
+          - rid: win-arm64
+            os: windows-11-arm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install host build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+
+      - name: Install host build tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev
+
+      - name: Build native host library
+        shell: bash
+        run: |
+          echo "TODO: ./native/build-host.sh (or RID-specific CMake) for ${{ matrix.rid }}"
+          # chmod +x native/build-host.sh && ./native/build-host.sh
+
+      - name: Upload native artifact
+        if: false
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: native/out/**
+
+  # ---------------------------------------------------------------------------
+  # Scaffold: self-contained publish matrix (disabled — enable with packaging)
+  # Depends only on managed so it is not blocked when native stays skipped.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: publish (${{ matrix.rid }})
+    needs: managed
+    if: ${{ false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-latest
+          - rid: win-arm64
+            os: windows-11-arm
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+          - rid: osx-arm64
+            os: macos-14
+          - rid: osx-x64
+            os: macos-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish self-contained (non-single-file)
+        run: |
+          dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=false \
+            -o artifacts/publish/${{ matrix.rid }}
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.rid }}
+          path: artifacts/publish/${{ matrix.rid }}/**

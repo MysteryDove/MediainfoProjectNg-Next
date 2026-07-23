@@ -1,0 +1,80 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MediainfoProjectNg.Next.App"
+             xmlns:local="using:MediainfoProjectNg.Next"
+             RequestedThemeVariant="Light">
+             <!-- Always light theme (never system dark). Chrome uses WPF-like Control gray, not pure white. -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://MediainfoProjectNg.Next/Themes/WpfClassicLight.axaml" />
+                <ResourceInclude Source="avares://MediainfoProjectNg.Next/Themes/ValidationBrushes.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme DensityStyle="Compact" />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+
+        <!-- Soften Fluent to feel closer to classic WPF chrome -->
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource Wpf.ControlBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{DynamicResource Wpf.ControlBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Wpf.ControlDarkBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Wpf.ControlLightBrush}" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Wpf.WindowBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Wpf.ControlDarkBrush}" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="{DynamicResource Wpf.WindowBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Wpf.ChromeBorderBrush}" />
+            <Setter Property="GridLinesVisibility" Value="All" />
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Wpf.InactiveBorderBrush}" />
+            <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource Wpf.InactiveBorderBrush}" />
+            <Setter Property="RowBackground" Value="{DynamicResource Wpf.DataGridRowDefaultBrush}" />
+        </Style>
+        <!-- WPF SystemColors.Highlight-ish selection (Fluent default is softer) -->
+        <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+            <Setter Property="Fill" Value="{DynamicResource Wpf.HighlightBrush}" />
+        </Style>
+        <Style Selector="DataGridRow:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.HighlightTextBrush}" />
+        </Style>
+        <Style Selector="DataGridCell:selected">
+            <Setter Property="Background" Value="{DynamicResource Wpf.HighlightBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.HighlightTextBrush}" />
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="{DynamicResource Wpf.DataGridHeaderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Wpf.ChromeBorderBrush}" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+        <Style Selector="TreeView">
+            <Setter Property="Background" Value="{DynamicResource Wpf.WindowBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Wpf.ChromeBorderBrush}" />
+        </Style>
+    </Application.Styles>
+</Application>

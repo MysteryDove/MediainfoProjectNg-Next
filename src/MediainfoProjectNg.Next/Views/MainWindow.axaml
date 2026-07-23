@@ -1,0 +1,242 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediainfoProjectNg.Next.ViewModels"
+        xmlns:conv="using:MediainfoProjectNg.Next.Converters"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="1100" d:DesignHeight="500"
+        x:Class="MediainfoProjectNg.Next.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="{Binding TitleString}"
+        Width="800" Height="400"
+        MinWidth="800" MinHeight="350"
+        Background="{DynamicResource Wpf.ControlBrush}">
+
+    <Design.DataContext>
+        <!-- Runtime DataContext is set in App.axaml.cs composition root. -->
+    </Design.DataContext>
+
+    <Window.Resources>
+        <x:Double x:Key="DataGridSortIconMinWidth">0</x:Double>
+        <conv:SelectionAwareBrushConverter x:Key="SelectionAwareBrush" />
+    </Window.Resources>
+
+    <DockPanel Background="{DynamicResource Wpf.ControlBrush}">
+        <!-- Compact Open Files/Folder (SPEC-allowed); Control chrome like WPF toolbar/status -->
+        <Border DockPanel.Dock="Top"
+                Padding="4,2"
+                Background="{DynamicResource Wpf.ControlBrush}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource Wpf.ChromeBorderBrush}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button Content="打开文件"
+                        Click="OpenFilesButton_OnClick"
+                        MinHeight="24" />
+                <Button Content="打开文件夹"
+                        Click="OpenFolderButton_OnClick"
+                        MinHeight="24" />
+            </StackPanel>
+        </Border>
+
+        <!-- StatusBar-like strip (OG: ~350 / 150 / right-aligned toggle) -->
+        <Border DockPanel.Dock="Bottom"
+                Padding="4,2"
+                Background="{DynamicResource Wpf.ControlBrush}"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource Wpf.ChromeBorderBrush}">
+            <Grid ColumnDefinitions="350,150,*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusString}"
+                           Foreground="{DynamicResource Wpf.WindowTextBrush}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"
+                           Margin="4,0" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding FileCountText}"
+                           Foreground="{DynamicResource Wpf.WindowTextBrush}"
+                           VerticalAlignment="Center"
+                           Margin="4,0" />
+                <Button x:Name="ToggleRightPanelButton"
+                        Grid.Column="3"
+                        Content="隐藏右侧面板"
+                        Click="ToggleRightPanelButton_OnClick"
+                        MinHeight="24"
+                        MinWidth="100"
+                        HorizontalAlignment="Right"
+                        Margin="4,0" />
+            </Grid>
+        </Border>
+
+        <!-- Content area: window white like WPF client area -->
+        <Grid x:Name="MainContentGrid"
+              Background="{DynamicResource Wpf.WindowBrush}"
+              Margin="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="200" />
+                <ColumnDefinition Width="2" />
+                <ColumnDefinition Width="320" MinWidth="320" />
+            </Grid.ColumnDefinitions>
+
+            <DataGrid x:Name="FileGrid"
+                      Grid.Column="0"
+                      Margin="2"
+                      ItemsSource="{Binding Files}"
+                      SelectedItem="{Binding SelectedFile}"
+                      IsReadOnly="True"
+                      CanUserReorderColumns="True"
+                      CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      HeadersVisibility="Column"
+                      SelectionMode="Extended"
+                      AutoGenerateColumns="False"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      BorderThickness="1"
+                      DragDrop.AllowDrop="True"
+                      KeyDown="FileGrid_OnKeyDown"
+                      DoubleTapped="FileGrid_OnDoubleTapped">
+                <DataGrid.Styles>
+                    <Style Selector="DataGridColumnHeader TextBlock">
+                        <Setter Property="TextTrimming" Value="None" />
+                        <Setter Property="TextWrapping" Value="NoWrap" />
+                    </Style>
+                    <Style Selector="DataGridColumnHeader /template/ Path#SortIcon">
+                        <Setter Property="IsVisible" Value="False" />
+                        <Setter Property="Width" Value="0" />
+                        <Setter Property="Height" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                    </Style>
+                    <Style Selector="DataGridColumnHeader:sortascending /template/ Path#SortIcon">
+                        <Setter Property="IsVisible" Value="False" />
+                    </Style>
+                    <Style Selector="DataGridColumnHeader:sortdescending /template/ Path#SortIcon">
+                        <Setter Property="IsVisible" Value="False" />
+                    </Style>
+                    <!-- Legacy row colors: White or finding brush; Black or Blue text -->
+                    <Style Selector="DataGridRow" x:DataType="vm:MediaFileRowViewModel">
+                        <Setter Property="Background" Value="{Binding RowBackgroundBrush}" />
+                        <Setter Property="Foreground" Value="{Binding RowForegroundBrush}" />
+                    </Style>
+                    <Style Selector="DataGridCell">
+                        <Setter Property="BorderThickness" Value="0" />
+                    </Style>
+                    <!-- Selected cells use WPF-like highlight text (OG system selection) -->
+                    <Style Selector="DataGridRow:selected DataGridCell">
+                        <Setter Property="Foreground" Value="{DynamicResource Wpf.HighlightTextBrush}" />
+                    </Style>
+                </DataGrid.Styles>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="文件名" Binding="{Binding Filename}" Width="SizeToHeader" MinWidth="96" CanUserSort="True" />
+                    <DataGridTextColumn Header="容器" Binding="{Binding Container}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="编码" Binding="{Binding VideoFormat}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="分辨率" Binding="{Binding Resolution}" Width="SizeToHeader" MinWidth="72" CanUserSort="True" />
+                    <DataGridTextColumn Header="位深" Binding="{Binding VideoBitDepth}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTemplateColumn Header="帧率" Width="SizeToHeader" MinWidth="56" SortMemberPath="FpsText" CanUserSort="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:MediaFileRowViewModel">
+                                <TextBlock Text="{Binding FpsText}"
+                                           VerticalAlignment="Center"
+                                           Margin="6,0">
+                                    <TextBlock.Foreground>
+                                        <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
+                                                      ConverterParameter="Foreground">
+                                            <Binding Path="FpsForegroundBrush" />
+                                            <Binding Path="IsSelected"
+                                                     RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
+                                        </MultiBinding>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="色彩格式" Width="SizeToHeader" MinWidth="80" SortMemberPath="ColorSpace" CanUserSort="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:MediaFileRowViewModel">
+                                <TextBlock Text="{Binding ColorSpace}"
+                                           VerticalAlignment="Center"
+                                           Margin="6,0">
+                                    <TextBlock.Foreground>
+                                        <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
+                                                      ConverterParameter="Foreground">
+                                            <Binding Path="ColorSpaceForegroundBrush" />
+                                            <Binding Path="IsSelected"
+                                                     RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
+                                        </MultiBinding>
+                                    </TextBlock.Foreground>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="语言" Binding="{Binding VideoLanguage}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding VideoDefault}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="#1音轨" Binding="{Binding Audio1Format}" Width="SizeToHeader" MinWidth="64" CanUserSort="True" />
+                    <DataGridTextColumn Header="位深" Binding="{Binding Audio1BitDepth}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="码率" Binding="{Binding Audio1Bitrate}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="语言" Binding="{Binding Audio1Language}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding Audio1Default}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="#2音轨" Binding="{Binding Audio2Format}" Width="SizeToHeader" MinWidth="64" CanUserSort="True" />
+                    <DataGridTextColumn Header="位深" Binding="{Binding Audio2BitDepth}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="码率" Binding="{Binding Audio2Bitrate}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="语言" Binding="{Binding Audio2Language}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding Audio2Default}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="#1字幕" Binding="{Binding Sub1Format}" Width="SizeToHeader" MinWidth="64" CanUserSort="True" />
+                    <DataGridTextColumn Header="语言" Binding="{Binding Sub1Language}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding Sub1Default}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTextColumn Header="章节" Binding="{Binding ChapterState}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
+                    <DataGridTemplateColumn Header="语言" Width="SizeToHeader" MinWidth="56" SortMemberPath="ChapterLanguage" CanUserSort="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:MediaFileRowViewModel">
+                                <Border Padding="6,0">
+                                    <Border.Background>
+                                        <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
+                                                      ConverterParameter="Background">
+                                            <Binding Path="ChapterLanguageBackgroundBrush" />
+                                            <Binding Path="IsSelected"
+                                                     RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
+                                        </MultiBinding>
+                                    </Border.Background>
+                                    <TextBlock Text="{Binding ChapterLanguage}"
+                                               VerticalAlignment="Center" />
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="完整路径" Binding="{Binding FullPath}" Width="280" MinWidth="160" CanUserSort="True" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <GridSplitter x:Name="RightSplitter"
+                          Grid.Column="1"
+                          Width="2"
+                          ResizeDirection="Columns"
+                          HorizontalAlignment="Stretch"
+                          Background="{DynamicResource Wpf.ChromeBorderBrush}" />
+
+            <!-- Right panel on Control chrome strip with Window content -->
+            <Grid x:Name="RightPanel"
+                  Grid.Column="2"
+                  Background="{DynamicResource Wpf.ControlBrush}"
+                  RowDefinitions="25,*">
+                <Button x:Name="ClearButton"
+                        Grid.Row="0"
+                        Content="Clear!"
+                        Command="{Binding ClearCommand}"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Margin="2" />
+                <TextBox Grid.Row="1"
+                         Margin="2"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="NoWrap"
+                         FontFamily="Consolas, Cascadia Mono, Menlo, monospace"
+                         FontSize="12"
+                         Text="{Binding SelectedSummary, Mode=OneWay}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

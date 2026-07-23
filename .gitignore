@@ -1,0 +1,48 @@
+## Build
+bin/
+obj/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+artifacts/
+publish/
+out/
+
+## IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.DS_Store
+
+## Native build
+native/out/
+native/build/
+external/MediaInfoLib/Project/
+*.dll
+*.so
+*.dylib
+!fixtures/**/*
+
+## Test / coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+## OMC runtime / session artifacts (not product source)
+.omc/
+
+## NuGet
+*.nupkg
+packages/
+project.lock.json
+
+## Misc
+*.log
+*.tmp
+.cache/

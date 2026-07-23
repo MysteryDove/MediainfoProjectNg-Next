@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RootNamespace>MediainfoProjectNg.Next</RootNamespace>
+    <Company>MediainfoProjectNg-Next</Company>
+    <Product>MediainfoProjectNg.Next</Product>
+  </PropertyGroup>
+</Project>

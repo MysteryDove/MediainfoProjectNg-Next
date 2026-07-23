@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      Legacy mpng brush ports. Used for both light and dark; dark theme may still be readable
+      for strong validation hues. Row "None" uses transparent so Fluent theme row bg shows through.
+    -->
+    <SolidColorBrush x:Key="Val.None" Color="Transparent" />
+
+    <SolidColorBrush x:Key="Val.ErrorRed" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="Val.ErrorViolet" Color="#FFEE82EE" />
+    <SolidColorBrush x:Key="Val.WarningYellow" Color="#FFFFFF00" />
+    <SolidColorBrush x:Key="Val.WarningPaleVioletRed" Color="#FFDB7093" />
+    <SolidColorBrush x:Key="Val.WarningDelayTeal" Color="#FF00A4AC" />
+    <SolidColorBrush x:Key="Val.InfoGreenYellow" Color="#FFADFF2F" />
+
+    <SolidColorBrush x:Key="Val.ForegroundMultiSub" Color="#FF0000FF" />
+    <SolidColorBrush x:Key="Val.FpsVfr" Color="#FF9400D3" />
+    <SolidColorBrush x:Key="Val.FpsNtsc" Color="#FF808000" />
+    <SolidColorBrush x:Key="Val.FpsRounded" Color="#FF6A5ACD" />
+    <SolidColorBrush x:Key="Val.FpsOther" Color="#FF800000" />
+    <SolidColorBrush x:Key="Val.ColorSpaceNon420" Color="#FFFFA500" />
+
+    <!-- Dark-theme multi-sub / default fg still legible on dark rows -->
+    <SolidColorBrush x:Key="Val.ForegroundDefault" Color="#FF000000" />
+</ResourceDictionary>

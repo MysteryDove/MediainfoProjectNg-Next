@@ -1,0 +1,29 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      Approximate classic WPF SystemColors (light) used by mpng:
+        Window / WindowText, Control / ControlText, ControlLight, InactiveBorder, etc.
+      Not pure-white chrome — status bar and headers use Control gray like WPF.
+    -->
+    <!-- SystemColors.WindowBrush -->
+    <SolidColorBrush x:Key="Wpf.WindowBrush" Color="#FFFFFFFF" />
+    <!-- SystemColors.WindowTextBrush -->
+    <SolidColorBrush x:Key="Wpf.WindowTextBrush" Color="#FF000000" />
+    <!-- SystemColors.ControlBrush (~#F0F0F0 on classic Windows) -->
+    <SolidColorBrush x:Key="Wpf.ControlBrush" Color="#FFF0F0F0" />
+    <!-- SystemColors.ControlLightBrush -->
+    <SolidColorBrush x:Key="Wpf.ControlLightBrush" Color="#FFE5E5E5" />
+    <!-- SystemColors.ControlDarkBrush / border -->
+    <SolidColorBrush x:Key="Wpf.ControlDarkBrush" Color="#FFA0A0A0" />
+    <!-- SystemColors.InactiveBorderBrush (common light value) -->
+    <SolidColorBrush x:Key="Wpf.InactiveBorderBrush" Color="#FFF4F7FC" />
+    <!-- Subtle chrome edge -->
+    <SolidColorBrush x:Key="Wpf.ChromeBorderBrush" Color="#FFCCCEDB" />
+    <!-- DataGrid header (typical WPF DataGrid) -->
+    <SolidColorBrush x:Key="Wpf.DataGridHeaderBrush" Color="#FFF0F0F0" />
+    <!-- Row default background = Window white (legacy converter uses Brushes.White) -->
+    <SolidColorBrush x:Key="Wpf.DataGridRowDefaultBrush" Color="#FFFFFFFF" />
+    <!-- Alternating / selection-ish system highlight (optional) -->
+    <SolidColorBrush x:Key="Wpf.HighlightBrush" Color="#FF3399FF" />
+    <SolidColorBrush x:Key="Wpf.HighlightTextBrush" Color="#FFFFFFFF" />
+</ResourceDictionary>

@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediainfoProjectNg.Next.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="MediainfoProjectNg.Next.Views.TechnicalWindow"
+        x:DataType="vm:TechnicalWindowViewModel"
+        Title="{Binding Title}"
+        Width="800" Height="450"
+        MinWidth="480" MinHeight="320"
+        Background="{DynamicResource Wpf.ControlBrush}">
+
+    <Grid RowDefinitions="*,2*"
+          Background="{DynamicResource Wpf.WindowBrush}"
+          Margin="0">
+        <DataGrid Grid.Row="0"
+                  x:Name="FindingsGrid"
+                  Margin="2"
+                  ItemsSource="{Binding Findings}"
+                  IsReadOnly="True"
+                  CanUserReorderColumns="False"
+                  HeadersVisibility="Column"
+                  SelectionMode="Extended"
+                  AutoGenerateColumns="False"
+                  BorderThickness="1">
+            <DataGrid.Styles>
+                <Style Selector="DataGridRow" x:DataType="vm:FindingRowViewModel">
+                    <Setter Property="Background" Value="{Binding BackgroundBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />
+                </Style>
+                <Style Selector="DataGridCell">
+                    <Setter Property="BorderThickness" Value="0" />
+                </Style>
+            </DataGrid.Styles>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="" Binding="{Binding Level}" Width="72" />
+                <DataGridTextColumn Header="信息" Binding="{Binding Description}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TreeView Grid.Row="1"
+                  x:Name="PropertyTree"
+                  Margin="2"
+                  BorderThickness="1"
+                  ItemsSource="{Binding TreeRoots}">
+            <!-- IsExpanded comes from TreeNode (root only true initially — OG parity) -->
+            <TreeView.Styles>
+                <Style Selector="TreeViewItem" x:DataType="vm:TreeNode">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                </Style>
+            </TreeView.Styles>
+            <TreeView.ItemTemplate>
+                <TreeDataTemplate ItemsSource="{Binding Children}"
+                                  x:DataType="vm:TreeNode">
+                    <Panel>
+                        <TextBlock Text="{Binding Key}"
+                                   IsVisible="{Binding IsBranch}" />
+                        <!-- OG: context menu on whole key+value StackPanel -->
+                        <StackPanel Orientation="Horizontal"
+                                    IsVisible="{Binding IsLeaf}">
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="复制值" Click="CopyValue_OnClick" />
+                                    <MenuItem Header="复制键值对" Click="CopyKeyValue_OnClick" />
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                            <TextBlock MinWidth="100"
+                                       Text="{Binding Key}"
+                                       VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding Value}"
+                                       TextWrapping="WrapWithOverflow"
+                                       VerticalAlignment="Top" />
+                        </StackPanel>
+                    </Panel>
+                </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+    </Grid>
+</Window>

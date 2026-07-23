@@ -49,17 +49,18 @@ fi
 
 # MediaInfoLib WIN32 + BUILD_ZLIB=ON expects:
 #   Project/CMake/../../../zlib  →  external/zlib
+# Must be MediaArea's zlib fork (defines ZLIB::ZLIBSTATIC alias used by MediaInfoLib).
+# Upstream madler/zlib alone does not export that alias and configure fails on Windows.
 ensure_zlib_source() {
   local zlib_dir="$ROOT/external/zlib"
-  if [[ -f "$zlib_dir/CMakeLists.txt" || -f "$zlib_dir/CMakeLists.txt.in" ]]; then
+  if [[ -f "$zlib_dir/CMakeLists.txt" ]] && grep -q 'ZLIB::ZLIBSTATIC' "$zlib_dir/CMakeLists.txt" 2>/dev/null; then
     return 0
   fi
-  echo "==> Fetching zlib sources into external/zlib (required for Windows MediaInfo build)"
+  echo "==> Fetching MediaArea/zlib into external/zlib (required for Windows MediaInfo build)"
   need_cmd git
   rm -rf "$zlib_dir"
-  # Pin a stable zlib release tag for reproducibility.
-  git clone --depth 1 --branch v1.3.1 https://github.com/madler/zlib.git "$zlib_dir"
-  # MediaInfoLib's add_subdirectory may expect a plain CMakeLists.txt
+  # MediaArea maintains a zlib CMake package compatible with MediaInfoLib.
+  git clone --depth 1 https://github.com/MediaArea/zlib.git "$zlib_dir"
   if [[ ! -f "$zlib_dir/CMakeLists.txt" ]]; then
     die "zlib clone missing CMakeLists.txt"
   fi

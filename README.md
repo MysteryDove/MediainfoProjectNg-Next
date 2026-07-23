@@ -48,16 +48,16 @@ macOS: first launch may require **System Settings → Privacy & Security → Ope
 
 ### CI publish artifacts
 
-Every `build-check` run (push / PR / manual) uploads self-contained publish folders after tests pass:
+Every `build-check` run (push / PR / manual) uploads **self-contained** publish folders (**.NET 10 runtime included**) after tests pass. Each folder also bundles **MediaInfo native**:
 
 | Artifact name | Contents |
 | --- | --- |
-| `publish-win-x64` / `publish-win-arm64` | Self-contained Windows folder |
-| `publish-linux-x64` / `publish-linux-arm64` | Self-contained Linux folder (+ `libmediainfo.so` when host arch matches) |
-| `publish-osx-arm64` / `publish-osx-x64` | Self-contained macOS folder (+ `libmediainfo.dylib` when host arch matches) |
-| `app-bundle-osx-arm64` / `app-bundle-osx-x64` | Unsigned `.app.zip` for double-click testing |
+| `publish-win-x64` / `publish-win-arm64` | Self-contained Windows + `MediaInfo.dll` |
+| `publish-linux-x64` / `publish-linux-arm64` | Self-contained Linux + `libmediainfo.so` |
+| `publish-osx-arm64` / `publish-osx-x64` | Self-contained macOS + `libmediainfo.dylib` |
+| `app-bundle-osx-arm64` / `app-bundle-osx-x64` | Unsigned `.app.zip` (includes dylib) |
 
-Download from the Actions run summary. MediaInfo is bundled only when the runner arch matches the RID (e.g. `osx-arm64` on `macos-14`); cross-arch publishes are still usable for app smoke tests.
+Native is built per RID via `./native/build-rid.sh <rid>` (osx-x64 cross-builds on Apple Silicon; win-arm64 cross-builds with MSVC). Download from the Actions run summary.
 
 ### macOS `.app` (unsigned)
 

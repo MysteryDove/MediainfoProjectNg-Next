@@ -14,6 +14,7 @@ public static class NativeLibraryLoader
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+            // Official MediaInfo packages use MediaInfo.dll; CMake target may emit mediainfo.dll.
             return "MediaInfo.dll";
         }
 
@@ -25,13 +26,31 @@ public static class NativeLibraryLoader
         return "libmediainfo.so";
     }
 
+    /// <summary>All file names the loader accepts for the current OS (primary first).</summary>
+    public static IReadOnlyList<string> GetLibraryFileNames()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return ["MediaInfo.dll", "mediainfo.dll"];
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return ["libmediainfo.dylib"];
+        }
+
+        return ["libmediainfo.so"];
+    }
+
     public static IEnumerable<string> CandidatePaths(string? appBase = null)
     {
         appBase ??= AppContext.BaseDirectory;
-        var fileName = GetLibraryFileName();
-        yield return Path.Combine(appBase, fileName);
-        yield return Path.Combine(appBase, "runtimes", GetRid(), "native", fileName);
-        yield return Path.Combine(appBase, "native", fileName);
+        foreach (var fileName in GetLibraryFileNames())
+        {
+            yield return Path.Combine(appBase, fileName);
+            yield return Path.Combine(appBase, "runtimes", GetRid(), "native", fileName);
+            yield return Path.Combine(appBase, "native", fileName);
+        }
     }
 
     public static string GetRid()

@@ -1,4 +1,4 @@
-# Every run: managed build/test, then self-contained publish artifacts per RID.
+# Every run: managed build/test, then self-contained publish with MediaInfo native bundled.
 name: build-check
 
 on:
@@ -56,8 +56,7 @@ jobs:
           retention-days: 14
 
   # ---------------------------------------------------------------------------
-  # Publish-ready self-contained apps per platform (quick testing downloads)
-  # Bundles host-arch MediaInfo on Linux/macOS when RID matches the runner.
+  # Self-contained publish + MediaInfo native for every RID
   # ---------------------------------------------------------------------------
   publish:
     name: publish (${{ matrix.rid }})
@@ -68,22 +67,28 @@ jobs:
         include:
           - rid: win-x64
             os: windows-latest
+            msvc_arch: x64
           - rid: win-arm64
             os: windows-latest
+            # Cross-compile ARM64 from x64 MSVC host tools
+            msvc_arch: amd64_arm64
           - rid: linux-x64
             os: ubuntu-latest
+            msvc_arch: ""
           - rid: linux-arm64
             os: ubuntu-24.04-arm
+            msvc_arch: ""
           - rid: osx-arm64
             os: macos-14
+            msvc_arch: ""
           - rid: osx-x64
             os: macos-14
+            msvc_arch: ""
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Submodules needed when we build MediaInfo for this host/RID.
           submodules: recursive
           fetch-depth: 1
 
@@ -108,13 +113,23 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev
 
+      - name: Install native build tools (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: choco install ninja -y --no-progress
+
+      - name: Setup MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
       - name: Publish self-contained (non-single-file)
         shell: bash
         run: |
           set -euo pipefail
           out="artifacts/publish/${{ matrix.rid }}"
           mkdir -p "$out"
-          # Slimmer artifacts for download/testing (no PDBs).
           dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
             -c Release \
             -r "${{ matrix.rid }}" \
@@ -123,68 +138,37 @@ jobs:
             -p:DebugType=None \
             -p:DebugSymbols=false \
             -o "$out"
-          # Drop common debug leftovers if any slipped through.
           find "$out" -name '*.pdb' -delete 2>/dev/null || true
           echo "Published to $out ($(du -sh "$out" | cut -f1))"
 
-      - name: Build and bundle MediaInfo native (matching host arch)
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        continue-on-error: true
+      - name: Build MediaInfo native for RID
         shell: bash
         run: |
           set -euo pipefail
-          rid="${{ matrix.rid }}"
-          host="$(uname -m)"
-          out="artifacts/publish/${rid}"
+          chmod +x native/build-rid.sh native/stage-into-publish.sh
+          ./native/build-rid.sh "${{ matrix.rid }}"
 
-          can_build=0
+      - name: Stage MediaInfo into publish folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x native/stage-into-publish.sh
+          ./native/stage-into-publish.sh "${{ matrix.rid }}" "artifacts/publish/${{ matrix.rid }}"
+          # Fail the job if loader-expected name is missing.
+          rid="${{ matrix.rid }}"
+          out="artifacts/publish/${rid}"
           case "$rid" in
-            *-arm64)
-              if [[ "$host" == "arm64" || "$host" == "aarch64" ]]; then can_build=1; fi
+            win-*)
+              test -f "$out/MediaInfo.dll" || test -f "$out/mediainfo.dll"
               ;;
-            *-x64)
-              if [[ "$host" == "x86_64" ]]; then can_build=1; fi
+            osx-*)
+              test -f "$out/libmediainfo.dylib"
+              ;;
+            linux-*)
+              test -f "$out/libmediainfo.so"
               ;;
           esac
-
-          if [[ "$can_build" -ne 1 ]]; then
-            echo "Skip native MediaInfo: host arch ($host) does not match RID ($rid)."
-            echo "Publish folder is still usable; MediaInfo may show Unavailable until a matching dylib/so is added."
-            exit 0
-          fi
-
-          chmod +x native/build-host.sh
-          ./native/build-host.sh
-
-          # Stage beside the apphost (NativeLibraryLoader probes app base / native/).
-          lib=""
-          if [[ "$(uname -s)" == "Darwin" ]]; then
-            lib="$(find native/out/host -name 'libmediainfo.dylib' | head -n1 || true)"
-            if [[ -n "$lib" ]]; then
-              cp -f "$lib" "$out/libmediainfo.dylib"
-              echo "Bundled $lib -> $out/libmediainfo.dylib"
-            fi
-          else
-            lib="$(find native/out/host -name 'libmediainfo.so*' -type f | head -n1 || true)"
-            if [[ -n "$lib" ]]; then
-              # Keep soname companion files if present.
-              if compgen -G "native/out/host/lib/libmediainfo.so*" > /dev/null; then
-                cp -a native/out/host/lib/libmediainfo.so* "$out/"
-              else
-                cp -f "$lib" "$out/libmediainfo.so"
-              fi
-              if [[ ! -f "$out/libmediainfo.so" ]]; then
-                cp -f "$lib" "$out/libmediainfo.so"
-              fi
-              echo "Bundled MediaInfo shared libs into $out"
-              ls -la "$out"/libmediainfo.so* || true
-            fi
-          fi
-
-          if [[ -z "${lib:-}" ]]; then
-            echo "WARNING: MediaInfo library not found under native/out/host after build." >&2
-            exit 1
-          fi
+          echo "MediaInfo native verified in $out"
 
       - name: Pack unsigned macOS .app
         if: runner.os == 'macOS'
@@ -197,8 +181,8 @@ jobs:
             --publish-dir "artifacts/publish/${rid}" \
             --out "artifacts/app/MediainfoProjectNg.Next-${rid}.app" \
             --rid "$rid" \
-            --version "${{ steps.ver.outputs.label }}"
-          # Zip for easy download (GitHub artifacts flatten .app awkwardly otherwise).
+            --version "${{ steps.ver.outputs.label }}" \
+            --dylib "artifacts/publish/${rid}/libmediainfo.dylib"
           mkdir -p artifacts/app-zip
           (
             cd artifacts/app
@@ -211,21 +195,35 @@ jobs:
         if: always()
         shell: bash
         run: |
+          rid="${{ matrix.rid }}"
+          out="artifacts/publish/${rid}"
           {
-            echo "## publish (${{ matrix.rid }})"
+            echo "## publish (${rid})"
             echo ""
-            echo "- runner: \`${{ matrix.os }}\` / \`${{ runner.os }}\`"
+            echo "- runner: \`${{ matrix.os }}\`"
             echo "- version label: \`${{ steps.ver.outputs.label }}\`"
-            if [[ -d "artifacts/publish/${{ matrix.rid }}" ]]; then
-              echo "- publish size: \`$(du -sh "artifacts/publish/${{ matrix.rid }}" | cut -f1)\`"
-              if ls "artifacts/publish/${{ matrix.rid }}"/libmediainfo.* >/dev/null 2>&1; then
-                echo "- MediaInfo native: **bundled**"
-              else
-                echo "- MediaInfo native: **not bundled** (Unavailable at runtime until added)"
-              fi
+            if [[ -d "$out" ]]; then
+              echo "- publish size: \`$(du -sh "$out" | cut -f1)\`"
             fi
-            if [[ -f "artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip" ]]; then
-              echo "- macOS app zip: \`$(du -sh "artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip" | cut -f1)\`"
+            bundled="no"
+            case "$rid" in
+              win-*)
+                if [[ -f "$out/MediaInfo.dll" || -f "$out/mediainfo.dll" ]]; then bundled="yes"; fi
+                ;;
+              osx-*)
+                if [[ -f "$out/libmediainfo.dylib" ]]; then bundled="yes"; fi
+                ;;
+              linux-*)
+                if [[ -f "$out/libmediainfo.so" ]]; then bundled="yes"; fi
+                ;;
+            esac
+            if [[ "$bundled" == "yes" ]]; then
+              echo "- MediaInfo native: **bundled**"
+            else
+              echo "- MediaInfo native: **NOT bundled**"
+            fi
+            if [[ -f "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip" ]]; then
+              echo "- macOS app zip: \`$(du -sh "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip" | cut -f1)\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 

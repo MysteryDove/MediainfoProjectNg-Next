@@ -43,23 +43,34 @@ Alternative build systems (documented by MediaArea, not used by the host spike s
 - `external/MediaInfoLib/Project/GNU` — autotools-style GNU build
 - `external/MediaInfoLib/Project/CMake` — **preferred** for this repo
 
-## Host spike (Phase 1B)
+## Host / RID builds
 
 ```bash
 # From repo root:
 git submodule update --init --recursive
+
+# Host RID (detect OS/arch → build + mirror to native/out/host):
 ./native/build-host.sh
+
+# Explicit RID (used by CI for every platform artifact):
+./native/build-rid.sh osx-arm64
+./native/build-rid.sh osx-x64      # cross from Apple Silicon via CMAKE_OSX_ARCHITECTURES
+./native/build-rid.sh linux-x64
+./native/build-rid.sh win-x64      # MSVC + Ninja on Windows
+
+# Copy into a publish folder (loader-friendly names):
+./native/stage-into-publish.sh osx-arm64 publish/osx-arm64
 ```
 
-What the script does:
+What `build-rid.sh` does:
 
-1. Verifies `cmake`, `ninja`, and a C++ compiler; prints Homebrew / CLT hints on failure.
-2. Configures MediaInfoLib with Ninja:
-   - `-DBUILD_SHARED_LIBS=ON` → produce `libmediainfo` shared library
-   - `-DBUILD_ZENLIB=ON` → build ZenLib from `external/ZenLib`
-   - `-DBUILD_ZLIB=OFF` → use system zlib (macOS / Linux)
-   - `-DCMAKE_INSTALL_PREFIX=native/out/host`
-3. Builds and installs into `native/out/host/` (library typically under `lib/`, e.g. `libmediainfo.dylib` on darwin).
+1. Verifies tools (`cmake`, `ninja` / MSVC) and submodules.
+2. Configures MediaInfoLib:
+   - `-DBUILD_SHARED_LIBS=ON`
+   - `-DBUILD_ZENLIB=ON`
+   - `-DBUILD_ZLIB=OFF` on Unix (system zlib); `ON` on Windows (bundled)
+   - arch flags for `osx-x64` / MSVC `-A` when using VS generator
+3. Installs into `native/out/<rid>/` and stages flat copies (`libmediainfo.dylib` / `.so` / `MediaInfo.dll`).
 
 Example configure equivalent (for CI or debugging):
 

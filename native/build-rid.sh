@@ -47,6 +47,24 @@ if [[ ! -f "$ZEN_DIR/Project/CMake/CMakeLists.txt" ]]; then
   die "ZenLib missing at $ZEN_DIR (git submodule update --init --recursive)"
 fi
 
+# MediaInfoLib WIN32 + BUILD_ZLIB=ON expects:
+#   Project/CMake/../../../zlib  →  external/zlib
+ensure_zlib_source() {
+  local zlib_dir="$ROOT/external/zlib"
+  if [[ -f "$zlib_dir/CMakeLists.txt" || -f "$zlib_dir/CMakeLists.txt.in" ]]; then
+    return 0
+  fi
+  echo "==> Fetching zlib sources into external/zlib (required for Windows MediaInfo build)"
+  need_cmd git
+  rm -rf "$zlib_dir"
+  # Pin a stable zlib release tag for reproducibility.
+  git clone --depth 1 --branch v1.3.1 https://github.com/madler/zlib.git "$zlib_dir"
+  # MediaInfoLib's add_subdirectory may expect a plain CMakeLists.txt
+  if [[ ! -f "$zlib_dir/CMakeLists.txt" ]]; then
+    die "zlib clone missing CMakeLists.txt"
+  fi
+}
+
 HOST_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 HOST_ARCH="$(uname -m)"
 
@@ -102,9 +120,10 @@ if [[ "$USE_MULTI_CONFIG" -eq 0 ]]; then
   CMAKE_ARGS+=(-DCMAKE_BUILD_TYPE="$BUILD_TYPE")
 fi
 
-# zlib: system on Unix, bundled on Windows (MediaInfoLib default ON for WIN32)
+# zlib: system on Unix, bundled on Windows (MediaInfoLib expects external/zlib)
 case "$RID" in
   win-*)
+    ensure_zlib_source
     CMAKE_ARGS+=(-DBUILD_ZLIB=ON)
     if [[ "$GENERATOR" == "Visual Studio"* ]]; then
       if [[ "$RID" == "win-x64" ]]; then

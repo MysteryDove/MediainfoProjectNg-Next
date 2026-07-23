@@ -23,6 +23,8 @@ out/
 native/out/
 native/build/
 external/MediaInfoLib/Project/
+# Auto-fetched only for Windows MediaInfo CMake (not a permanent submodule)
+external/zlib/
 *.dll
 *.so
 *.dylib

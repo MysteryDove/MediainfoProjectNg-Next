@@ -1,4 +1,4 @@
-# Managed build/test gate (always on). Native + publish matrix scaffolded but disabled until ready.
+# Every run: managed build/test, then self-contained publish artifacts per RID.
 name: build-check
 
 on:
@@ -53,66 +53,15 @@ jobs:
           name: managed-test-results
           path: TestResults/**/*.trx
           if-no-files-found: ignore
+          retention-days: 14
 
   # ---------------------------------------------------------------------------
-  # Scaffold: native MediaInfoLib build matrix (disabled — enable when CI native is ready)
-  # ---------------------------------------------------------------------------
-  native:
-    name: native (${{ matrix.rid }})
-    needs: managed
-    if: ${{ false }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - rid: osx-arm64
-            os: macos-14
-          - rid: osx-x64
-            os: macos-14
-          - rid: linux-x64
-            os: ubuntu-latest
-          - rid: linux-arm64
-            os: ubuntu-24.04-arm
-          - rid: win-x64
-            os: windows-latest
-          - rid: win-arm64
-            os: windows-11-arm
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout (with submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install host build tools (macOS)
-        if: runner.os == 'macOS'
-        run: brew install cmake ninja
-
-      - name: Install host build tools (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev
-
-      - name: Build native host library
-        shell: bash
-        run: |
-          echo "TODO: ./native/build-host.sh (or RID-specific CMake) for ${{ matrix.rid }}"
-          # chmod +x native/build-host.sh && ./native/build-host.sh
-
-      - name: Upload native artifact
-        if: false
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-${{ matrix.rid }}
-          path: native/out/**
-
-  # ---------------------------------------------------------------------------
-  # Scaffold: self-contained publish matrix (disabled — enable with packaging)
-  # Depends only on managed so it is not blocked when native stays skipped.
+  # Publish-ready self-contained apps per platform (quick testing downloads)
+  # Bundles host-arch MediaInfo on Linux/macOS when RID matches the runner.
   # ---------------------------------------------------------------------------
   publish:
     name: publish (${{ matrix.rid }})
     needs: managed
-    if: ${{ false }}
     strategy:
       fail-fast: false
       matrix:
@@ -120,7 +69,7 @@ jobs:
           - rid: win-x64
             os: windows-latest
           - rid: win-arm64
-            os: windows-11-arm
+            os: windows-latest
           - rid: linux-x64
             os: ubuntu-latest
           - rid: linux-arm64
@@ -133,23 +82,127 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Submodules needed when we build MediaInfo for this host/RID.
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install native build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+
+      - name: Install native build tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev
+
       - name: Publish self-contained (non-single-file)
+        shell: bash
         run: |
+          set -euo pipefail
+          out="artifacts/publish/${{ matrix.rid }}"
+          mkdir -p "$out"
           dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
             -c Release \
-            -r ${{ matrix.rid }} \
+            -r "${{ matrix.rid }}" \
             --self-contained true \
             -p:PublishSingleFile=false \
-            -o artifacts/publish/${{ matrix.rid }}
+            -o "$out"
+          echo "Published to $out"
 
-      - name: Upload publish artifact
+      - name: Build and bundle MediaInfo native (matching host arch)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rid="${{ matrix.rid }}"
+          host="$(uname -m)"
+          out="artifacts/publish/${rid}"
+
+          can_build=0
+          case "$rid" in
+            *-arm64)
+              if [[ "$host" == "arm64" || "$host" == "aarch64" ]]; then can_build=1; fi
+              ;;
+            *-x64)
+              if [[ "$host" == "x86_64" ]]; then can_build=1; fi
+              ;;
+          esac
+
+          if [[ "$can_build" -ne 1 ]]; then
+            echo "Skip native MediaInfo: host arch ($host) does not match RID ($rid)."
+            echo "Publish folder is still usable; MediaInfo may show Unavailable until a matching dylib/so is added."
+            exit 0
+          fi
+
+          chmod +x native/build-host.sh
+          ./native/build-host.sh
+
+          # Stage beside the apphost (NativeLibraryLoader probes app base / native/).
+          lib=""
+          if [[ "$(uname -s)" == "Darwin" ]]; then
+            lib="$(find native/out/host -name 'libmediainfo.dylib' | head -n1)"
+            if [[ -n "$lib" ]]; then
+              cp -f "$lib" "$out/libmediainfo.dylib"
+              echo "Bundled $lib -> $out/libmediainfo.dylib"
+            fi
+          else
+            lib="$(find native/out/host -name 'libmediainfo.so*' -type f | head -n1)"
+            if [[ -n "$lib" ]]; then
+              # Keep soname companion files if present.
+              cp -a native/out/host/lib/libmediainfo.so* "$out/" 2>/dev/null || cp -f "$lib" "$out/libmediainfo.so"
+              # Ensure plain name exists for loader.
+              if [[ ! -f "$out/libmediainfo.so" ]]; then
+                cp -f "$lib" "$out/libmediainfo.so"
+              fi
+              echo "Bundled MediaInfo shared libs into $out"
+              ls -la "$out"/libmediainfo.so* || true
+            fi
+          fi
+
+          if [[ -z "$lib" ]]; then
+            echo "WARNING: MediaInfo library not found under native/out/host after build." >&2
+          fi
+
+      - name: Pack unsigned macOS .app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rid="${{ matrix.rid }}"
+          chmod +x scripts/pack-macos-app.sh
+          ./scripts/pack-macos-app.sh \
+            --publish-dir "artifacts/publish/${rid}" \
+            --out "artifacts/app/MediainfoProjectNg.Next-${rid}.app" \
+            --rid "$rid" \
+            --version "0.0.0-ci"
+          # Zip for easy download (GitHub artifacts flatten .app awkwardly otherwise).
+          mkdir -p artifacts/app-zip
+          (
+            cd artifacts/app
+            ditto -c -k --keepParent "MediainfoProjectNg.Next-${rid}.app" \
+              "../app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
+          )
+          ls -lh "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
+
+      - name: Upload publish folder
         uses: actions/upload-artifact@v4
         with:
-          name: app-${{ matrix.rid }}
-          path: artifacts/publish/${{ matrix.rid }}/**
+          name: publish-${{ matrix.rid }}
+          path: artifacts/publish/${{ matrix.rid }}/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
+
+      - name: Upload macOS .app zip
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-bundle-${{ matrix.rid }}
+          path: artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip
+          if-no-files-found: error
+          retention-days: 14

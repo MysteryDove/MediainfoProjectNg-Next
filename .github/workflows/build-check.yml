@@ -85,11 +85,20 @@ jobs:
         with:
           # Submodules needed when we build MediaInfo for this host/RID.
           submodules: recursive
+          fetch-depth: 1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+
+      - name: Resolve version label
+        id: ver
+        shell: bash
+        run: |
+          sha="$(git rev-parse --short HEAD)"
+          echo "label=0.0.0-ci.${sha}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
 
       - name: Install native build tools (macOS)
         if: runner.os == 'macOS'
@@ -105,13 +114,18 @@ jobs:
           set -euo pipefail
           out="artifacts/publish/${{ matrix.rid }}"
           mkdir -p "$out"
+          # Slimmer artifacts for download/testing (no PDBs).
           dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
             -c Release \
             -r "${{ matrix.rid }}" \
             --self-contained true \
             -p:PublishSingleFile=false \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
             -o "$out"
-          echo "Published to $out"
+          # Drop common debug leftovers if any slipped through.
+          find "$out" -name '*.pdb' -delete 2>/dev/null || true
+          echo "Published to $out ($(du -sh "$out" | cut -f1))"
 
       - name: Build and bundle MediaInfo native (matching host arch)
         if: runner.os == 'Linux' || runner.os == 'macOS'
@@ -145,17 +159,20 @@ jobs:
           # Stage beside the apphost (NativeLibraryLoader probes app base / native/).
           lib=""
           if [[ "$(uname -s)" == "Darwin" ]]; then
-            lib="$(find native/out/host -name 'libmediainfo.dylib' | head -n1)"
+            lib="$(find native/out/host -name 'libmediainfo.dylib' | head -n1 || true)"
             if [[ -n "$lib" ]]; then
               cp -f "$lib" "$out/libmediainfo.dylib"
               echo "Bundled $lib -> $out/libmediainfo.dylib"
             fi
           else
-            lib="$(find native/out/host -name 'libmediainfo.so*' -type f | head -n1)"
+            lib="$(find native/out/host -name 'libmediainfo.so*' -type f | head -n1 || true)"
             if [[ -n "$lib" ]]; then
               # Keep soname companion files if present.
-              cp -a native/out/host/lib/libmediainfo.so* "$out/" 2>/dev/null || cp -f "$lib" "$out/libmediainfo.so"
-              # Ensure plain name exists for loader.
+              if compgen -G "native/out/host/lib/libmediainfo.so*" > /dev/null; then
+                cp -a native/out/host/lib/libmediainfo.so* "$out/"
+              else
+                cp -f "$lib" "$out/libmediainfo.so"
+              fi
               if [[ ! -f "$out/libmediainfo.so" ]]; then
                 cp -f "$lib" "$out/libmediainfo.so"
               fi
@@ -164,8 +181,9 @@ jobs:
             fi
           fi
 
-          if [[ -z "$lib" ]]; then
+          if [[ -z "${lib:-}" ]]; then
             echo "WARNING: MediaInfo library not found under native/out/host after build." >&2
+            exit 1
           fi
 
       - name: Pack unsigned macOS .app
@@ -179,7 +197,7 @@ jobs:
             --publish-dir "artifacts/publish/${rid}" \
             --out "artifacts/app/MediainfoProjectNg.Next-${rid}.app" \
             --rid "$rid" \
-            --version "0.0.0-ci"
+            --version "${{ steps.ver.outputs.label }}"
           # Zip for easy download (GitHub artifacts flatten .app awkwardly otherwise).
           mkdir -p artifacts/app-zip
           (
@@ -188,6 +206,28 @@ jobs:
               "../app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
           )
           ls -lh "artifacts/app-zip/MediainfoProjectNg.Next-${rid}.app.zip"
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## publish (${{ matrix.rid }})"
+            echo ""
+            echo "- runner: \`${{ matrix.os }}\` / \`${{ runner.os }}\`"
+            echo "- version label: \`${{ steps.ver.outputs.label }}\`"
+            if [[ -d "artifacts/publish/${{ matrix.rid }}" ]]; then
+              echo "- publish size: \`$(du -sh "artifacts/publish/${{ matrix.rid }}" | cut -f1)\`"
+              if ls "artifacts/publish/${{ matrix.rid }}"/libmediainfo.* >/dev/null 2>&1; then
+                echo "- MediaInfo native: **bundled**"
+              else
+                echo "- MediaInfo native: **not bundled** (Unavailable at runtime until added)"
+              fi
+            fi
+            if [[ -f "artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip" ]]; then
+              echo "- macOS app zip: \`$(du -sh "artifacts/app-zip/MediainfoProjectNg.Next-${{ matrix.rid }}.app.zip" | cut -f1)\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload publish folder
         uses: actions/upload-artifact@v4

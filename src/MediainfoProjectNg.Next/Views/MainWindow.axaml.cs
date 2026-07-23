@@ -1,7 +1,6 @@
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -20,7 +19,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Opened += OnOpened;
-        Closing += OnClosing;
+        // Do NOT call desktop.Shutdown() from Closing — that re-enters close and
+        // stack-overflows on macOS (SIGABRT / HandleFatalStackOverflow). App uses
+        // ShutdownMode.OnMainWindowClose instead (see App.axaml.cs).
         FileGrid.AddHandler(DragDrop.DropEvent, FileGrid_OnDrop);
         FileGrid.AddHandler(DragDrop.DragOverEvent, FileGrid_OnDragOver);
         // Tunnel so empty-area unselect runs before row selection steals the press.
@@ -34,14 +35,6 @@ public partial class MainWindow : Window
         if (Vm is { MediaInfoAvailable: false, MediaInfoUnavailableMessage: { } message })
         {
             await ShowSimpleMessageAsync(message).ConfigureAwait(true);
-        }
-    }
-
-    private void OnClosing(object? sender, WindowClosingEventArgs e)
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            desktop.Shutdown();
         }
     }
 

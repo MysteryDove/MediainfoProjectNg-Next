@@ -1,6 +1,4 @@
-# Multi-RID publish with MediaInfo native bundled.
-# Windows: framework-dependent (no bundled .NET runtime / no AOT) — host needs .NET 10 desktop runtime.
-# Linux/macOS: self-contained (runtime included).
+# Self-contained multi-RID publish with MediaInfo native bundled.
 # Called from pull_request (via build-check) and draft-release; also manual dispatch.
 name: publish-bundled
 
@@ -30,31 +28,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Windows: framework-dependent — do not ship .NET runtime (or AOT/R2R).
           - rid: win-x64
             os: windows-latest
             msvc_arch: x64
-            self_contained: "false"
           - rid: win-arm64
             os: windows-latest
             msvc_arch: amd64_arm64
-            self_contained: "false"
           - rid: linux-x64
             os: ubuntu-latest
             msvc_arch: ""
-            self_contained: "true"
           - rid: linux-arm64
             os: ubuntu-24.04-arm
             msvc_arch: ""
-            self_contained: "true"
           - rid: osx-arm64
             os: macos-14
             msvc_arch: ""
-            self_contained: "true"
           - rid: osx-x64
             os: macos-14
             msvc_arch: ""
-            self_contained: "true"
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -99,43 +90,22 @@ jobs:
         with:
           arch: ${{ matrix.msvc_arch }}
 
-      - name: Publish (non-single-file)
+      - name: Publish self-contained (non-single-file)
         shell: bash
         run: |
           set -euo pipefail
-          rid="${{ matrix.rid }}"
-          sc="${{ matrix.self_contained }}"
-          out="artifacts/publish/${rid}"
+          out="artifacts/publish/${{ matrix.rid }}"
           mkdir -p "$out"
-          # Windows: framework-dependent (host .NET 10). Explicitly disable AOT / ReadyToRun.
-          # Unix: self-contained so users need no separate runtime install.
-          extra=()
-          if [[ "$sc" == "false" ]]; then
-            extra+=(
-              --self-contained false
-              -p:PublishAot=false
-              -p:PublishReadyToRun=false
-              -p:PublishTrimmed=false
-            )
-            mode="framework-dependent (no .NET runtime / no AOT)"
-          else
-            extra+=(
-              --self-contained true
-              -p:PublishAot=false
-              -p:PublishReadyToRun=false
-            )
-            mode="self-contained (runtime included, no AOT)"
-          fi
           dotnet publish src/MediainfoProjectNg.Next/MediainfoProjectNg.Next.csproj \
             -c Release \
-            -r "$rid" \
+            -r "${{ matrix.rid }}" \
+            --self-contained true \
             -p:PublishSingleFile=false \
             -p:DebugType=None \
             -p:DebugSymbols=false \
-            "${extra[@]}" \
             -o "$out"
           find "$out" -name '*.pdb' -delete 2>/dev/null || true
-          echo "Published ($mode) to $out ($(du -sh "$out" | cut -f1))"
+          echo "Published to $out ($(du -sh "$out" | cut -f1))"
 
       - name: Build MediaInfo native for RID
         shell: bash
@@ -207,17 +177,11 @@ jobs:
         run: |
           rid="${{ matrix.rid }}"
           out="artifacts/publish/${rid}"
-          sc="${{ matrix.self_contained }}"
           {
             echo "## publish (${rid}) — MediaInfo bundled"
             echo ""
             echo "- runner: \`${{ matrix.os }}\`"
             echo "- version label: \`${{ steps.ver.outputs.label }}\`"
-            if [[ "$sc" == "false" ]]; then
-              echo "- .NET packaging: **framework-dependent** (no runtime / no AOT; needs .NET 10 desktop runtime on host)"
-            else
-              echo "- .NET packaging: **self-contained** (runtime included; AOT off)"
-            fi
             if [[ -d "$out" ]]; then
               echo "- publish size: \`$(du -sh "$out" | cut -f1)\`"
             fi

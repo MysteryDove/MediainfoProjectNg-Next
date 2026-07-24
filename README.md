@@ -42,30 +42,27 @@ See [`native/README.md`](native/README.md). Submodules are added in Phase 1B.
 
 ## Platforms (V1)
 
-Windows x64/arm64, Linux x64/arm64, macOS — self-contained, unsigned.
-
-macOS: first launch may require **System Settings → Privacy & Security → Open Anyway**.
+Windows x64/arm64, Linux x64/arm64, macOS. macOS: first launch may require **System Settings → Privacy & Security → Open Anyway**.
 
 ### CI
 
 | Trigger | Workflow | What runs |
 | --- | --- | --- |
 | **Push** to `main` | `build-check` | Quick **managed** restore / build / unit tests only (no native MediaInfo, no multi-RID publish) |
-| **Pull request** | `build-check` → `publish-bundled` | Tests, then **full** self-contained publish for all RIDs with MediaInfo native bundled |
-| **draft-release** (manual) | `draft-release` → `publish-bundled` | Same full packages; with `dry_run=false` attaches zips to a GitHub **draft** release |
+| **Pull request** | `build-check` → `publish-bundled` | Tests, then full multi-RID publish with MediaInfo native |
+| **draft-release** (manual) | `draft-release` → `publish-bundled` | Same packages; `dry_run=false` attaches zips to a GitHub **draft** release |
 | Manual | `publish-bundled` or `build-check` with *publish_bundled* | Full packages on demand |
 
-Bundled package artifacts (PR / draft-release / manual):
+Package artifacts (PR / draft-release / manual) — **Native AOT is never used**:
 
-| Artifact name | Contents |
-| --- | --- |
-| `publish-win-x64` / `publish-win-arm64` | Self-contained Windows + `MediaInfo.dll` |
-| `publish-linux-x64` / `publish-linux-arm64` | Self-contained Linux + `libmediainfo.so` |
-| `publish-osx-arm64` / `publish-osx-x64` | Self-contained macOS + `libmediainfo.dylib` |
-| `publish-zip-*` | Zip of each publish folder (release-friendly) |
-| `app-bundle-osx-arm64` / `app-bundle-osx-x64` | Unsigned `.app.zip` |
+| Artifact | Platform | .NET packaging |
+| --- | --- | --- |
+| `publish-win-x64` / `publish-win-arm64` | Windows | **Framework-dependent** (no runtime/AOT in the zip; install [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)) + `MediaInfo.dll` |
+| `publish-linux-*` / `publish-osx-*` | Linux / macOS | **Self-contained** (runtime included) + MediaInfo native |
+| `publish-zip-*` | all | Zip of each publish folder |
+| `app-bundle-osx-*` | macOS | Unsigned `.app.zip` (self-contained) |
 
-**.NET 10 runtime is included** (self-contained). Native is built per RID via `./native/build-rid.sh`.
+Native MediaInfo is built per RID via `./native/build-rid.sh`.
 
 ### macOS `.app` (unsigned)
 

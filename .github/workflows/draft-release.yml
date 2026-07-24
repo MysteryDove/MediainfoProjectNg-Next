@@ -94,17 +94,17 @@ jobs:
           body: |
             Draft release **${{ needs.version.outputs.name }}**.
 
-            Self-contained packages (**.NET 10 runtime included**) with **MediaInfo native bundled**:
+            Packages with **MediaInfo native bundled** (no Native AOT):
 
-            | Asset | Platform |
-            | --- | --- |
-            | `MediainfoProjectNg.Next-win-x64.zip` | Windows x64 |
-            | `MediainfoProjectNg.Next-win-arm64.zip` | Windows ARM64 |
-            | `MediainfoProjectNg.Next-linux-x64.zip` | Linux x64 |
-            | `MediainfoProjectNg.Next-linux-arm64.zip` | Linux ARM64 |
-            | `MediainfoProjectNg.Next-osx-arm64.zip` | macOS Apple Silicon |
-            | `MediainfoProjectNg.Next-osx-x64.zip` | macOS Intel |
-            | `MediainfoProjectNg.Next-osx-*.app.zip` | Unsigned macOS `.app` bundles |
+            | Asset | Platform | .NET |
+            | --- | --- | --- |
+            | `MediainfoProjectNg.Next-win-x64.zip` | Windows x64 | Framework-dependent — install [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) |
+            | `MediainfoProjectNg.Next-win-arm64.zip` | Windows ARM64 | Framework-dependent — install .NET 10 Desktop Runtime |
+            | `MediainfoProjectNg.Next-linux-x64.zip` | Linux x64 | Self-contained (runtime included) |
+            | `MediainfoProjectNg.Next-linux-arm64.zip` | Linux ARM64 | Self-contained (runtime included) |
+            | `MediainfoProjectNg.Next-osx-arm64.zip` | macOS Apple Silicon | Self-contained (runtime included) |
+            | `MediainfoProjectNg.Next-osx-x64.zip` | macOS Intel | Self-contained (runtime included) |
+            | `MediainfoProjectNg.Next-osx-*.app.zip` | Unsigned macOS `.app` | Self-contained |
 
             macOS: first open may need **Privacy & Security → Open Anyway**.
           files: release-assets/*

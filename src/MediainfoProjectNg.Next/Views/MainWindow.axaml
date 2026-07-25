@@ -91,6 +91,10 @@
                       HeadersVisibility="Column"
                       SelectionMode="Extended"
                       AutoGenerateColumns="False"
+                      FontSize="12"
+                      RowHeight="20"
+                      ColumnHeaderHeight="22"
+                      ColumnWidth="Auto"
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto"
                       BorderThickness="1"
@@ -98,6 +102,11 @@
                       KeyDown="FileGrid_OnKeyDown"
                       DoubleTapped="FileGrid_OnDoubleTapped">
                 <DataGrid.Styles>
+                    <Style Selector="DataGridColumnHeader">
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="MinHeight" Value="0" />
+                        <Setter Property="Padding" Value="4,0" />
+                    </Style>
                     <Style Selector="DataGridColumnHeader TextBlock">
                         <Setter Property="TextTrimming" Value="None" />
                         <Setter Property="TextWrapping" Value="NoWrap" />
@@ -121,6 +130,12 @@
                     </Style>
                     <Style Selector="DataGridCell">
                         <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="MinHeight" Value="0" />
+                        <Setter Property="Padding" Value="0" />
+                    </Style>
+                    <Style Selector="DataGridCell TextBlock">
+                        <Setter Property="Margin" Value="4,0" />
                     </Style>
                     <!-- Selected cells use WPF-like highlight text (OG system selection) -->
                     <Style Selector="DataGridRow:selected DataGridCell">
@@ -128,17 +143,16 @@
                     </Style>
                 </DataGrid.Styles>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="文件名" Binding="{Binding Filename}" Width="SizeToHeader" MinWidth="96" CanUserSort="True" />
-                    <DataGridTextColumn Header="容器" Binding="{Binding Container}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="编码" Binding="{Binding VideoFormat}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="分辨率" Binding="{Binding Resolution}" Width="SizeToHeader" MinWidth="72" CanUserSort="True" />
-                    <DataGridTextColumn Header="位深" Binding="{Binding VideoBitDepth}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTemplateColumn Header="帧率" Width="SizeToHeader" MinWidth="56" SortMemberPath="FpsText" CanUserSort="True">
+                    <DataGridTextColumn Header="文件名" Binding="{Binding Filename}" CanUserSort="True" />
+                    <DataGridTextColumn Header="容器" Binding="{Binding Container}" CanUserSort="True" />
+                    <DataGridTextColumn Header="编码" Binding="{Binding VideoFormat}" CanUserSort="True" />
+                    <DataGridTextColumn Header="分辨率" Binding="{Binding Resolution}" CanUserSort="True" />
+                    <DataGridTextColumn Header="位深" Binding="{Binding VideoBitDepth}" CanUserSort="True" />
+                    <DataGridTemplateColumn Header="帧率" SortMemberPath="FpsText" CanUserSort="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate x:DataType="vm:MediaFileRowViewModel">
                                 <TextBlock Text="{Binding FpsText}"
-                                           VerticalAlignment="Center"
-                                           Margin="6,0">
+                                           VerticalAlignment="Center">
                                     <TextBlock.Foreground>
                                         <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
                                                       ConverterParameter="Foreground">
@@ -151,12 +165,11 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="色彩格式" Width="SizeToHeader" MinWidth="80" SortMemberPath="ColorSpace" CanUserSort="True">
+                    <DataGridTemplateColumn Header="色彩格式" SortMemberPath="ColorSpace" CanUserSort="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate x:DataType="vm:MediaFileRowViewModel">
                                 <TextBlock Text="{Binding ColorSpace}"
-                                           VerticalAlignment="Center"
-                                           Margin="6,0">
+                                           VerticalAlignment="Center">
                                     <TextBlock.Foreground>
                                         <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
                                                       ConverterParameter="Foreground">
@@ -169,26 +182,26 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="语言" Binding="{Binding VideoLanguage}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="默认" Binding="{Binding VideoDefault}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="#1音轨" Binding="{Binding Audio1Format}" Width="SizeToHeader" MinWidth="64" CanUserSort="True" />
-                    <DataGridTextColumn Header="位深" Binding="{Binding Audio1BitDepth}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="码率" Binding="{Binding Audio1Bitrate}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="语言" Binding="{Binding Audio1Language}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="默认" Binding="{Binding Audio1Default}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="#2音轨" Binding="{Binding Audio2Format}" Width="SizeToHeader" MinWidth="64" CanUserSort="True" />
-                    <DataGridTextColumn Header="位深" Binding="{Binding Audio2BitDepth}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="码率" Binding="{Binding Audio2Bitrate}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="语言" Binding="{Binding Audio2Language}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="默认" Binding="{Binding Audio2Default}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="#1字幕" Binding="{Binding Sub1Format}" Width="SizeToHeader" MinWidth="64" CanUserSort="True" />
-                    <DataGridTextColumn Header="语言" Binding="{Binding Sub1Language}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="默认" Binding="{Binding Sub1Default}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTextColumn Header="章节" Binding="{Binding ChapterState}" Width="SizeToHeader" MinWidth="56" CanUserSort="True" />
-                    <DataGridTemplateColumn Header="语言" Width="SizeToHeader" MinWidth="56" SortMemberPath="ChapterLanguage" CanUserSort="True">
+                    <DataGridTextColumn Header="语言" Binding="{Binding VideoLanguage}" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding VideoDefault}" CanUserSort="True" />
+                    <DataGridTextColumn Header="#1音轨" Binding="{Binding Audio1Format}" CanUserSort="True" />
+                    <DataGridTextColumn Header="位深" Binding="{Binding Audio1BitDepth}" CanUserSort="True" />
+                    <DataGridTextColumn Header="码率" Binding="{Binding Audio1Bitrate}" CanUserSort="True" />
+                    <DataGridTextColumn Header="语言" Binding="{Binding Audio1Language}" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding Audio1Default}" CanUserSort="True" />
+                    <DataGridTextColumn Header="#2音轨" Binding="{Binding Audio2Format}" CanUserSort="True" />
+                    <DataGridTextColumn Header="位深" Binding="{Binding Audio2BitDepth}" CanUserSort="True" />
+                    <DataGridTextColumn Header="码率" Binding="{Binding Audio2Bitrate}" CanUserSort="True" />
+                    <DataGridTextColumn Header="语言" Binding="{Binding Audio2Language}" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding Audio2Default}" CanUserSort="True" />
+                    <DataGridTextColumn Header="#1字幕" Binding="{Binding Sub1Format}" CanUserSort="True" />
+                    <DataGridTextColumn Header="语言" Binding="{Binding Sub1Language}" CanUserSort="True" />
+                    <DataGridTextColumn Header="默认" Binding="{Binding Sub1Default}" CanUserSort="True" />
+                    <DataGridTextColumn Header="章节" Binding="{Binding ChapterState}" CanUserSort="True" />
+                    <DataGridTemplateColumn Header="语言" SortMemberPath="ChapterLanguage" CanUserSort="True">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate x:DataType="vm:MediaFileRowViewModel">
-                                <Border Padding="6,0">
+                                <Border>
                                     <Border.Background>
                                         <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
                                                       ConverterParameter="Background">
@@ -203,7 +216,7 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="完整路径" Binding="{Binding FullPath}" Width="280" MinWidth="160" CanUserSort="True" />
+                    <DataGridTextColumn Header="完整路径" Binding="{Binding FullPath}" CanUserSort="True" />
                 </DataGrid.Columns>
             </DataGrid>
 

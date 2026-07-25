@@ -1,0 +1,490 @@
+{
+  "policyRevision": "CollationV1@2cb203644dd4a05335fe4551b1086304f9f623a9",
+  "upstreamPin": "2cb203644dd4a05335fe4551b1086304f9f623a9",
+  "upstreamRepo": "vcb-s/VCB-S_Collation",
+  "enabledContainers": [
+    ".mkv"
+  ],
+  "disabledContainers": [
+    ".mka",
+    ".mp4"
+  ],
+  "filenameGrammar": "vcbs-mkv-release-v1",
+  "notes": [
+    "MKA and mobile MP4 rows are disabled until a dedicated grammar/profile is frozen.",
+    "Menu-PGS flood exemption requires an explicit profile flag; absent that flag PGS rules apply to recognized Collation MKV.",
+    "Chapter default-name and timestamp rules are future-plan scope.",
+    "Only exact crop 1920x1072->1080p is accepted; no generic crop tolerance.",
+    "Bugfix Stage 0: multi-input applicability, grammar allowlists, exact SDR (no empty aliases), FPS supersession empty, approvedColorReviewProfiles pinned."
+  ],
+  "rules": [
+    {
+      "ruleId": "FN.Resolution",
+      "class": "Normative",
+      "group": "Filename",
+      "order": 10,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilename",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E8%A7%86%E9%A2%91%E5%92%8C%E5%AD%97%E5%B9%95%E6%95%B4%E7%90%86%E8%A7%84%E8%8C%83.md",
+      "expectedEvidence": "Claimed resolution bucket vs actual WidthxHeight mapped bucket",
+      "exceptions": [
+        "1920x1072 maps to 1080p"
+      ],
+      "supersedesLegacy": [
+        "内容物和文件名描述不符。"
+      ],
+      "category": "ContainerNaming"
+    },
+    {
+      "ruleId": "FN.Profile",
+      "class": "Normative",
+      "group": "Filename",
+      "order": 20,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilename",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E8%A7%86%E9%A2%91%E5%92%8C%E5%AD%97%E5%B9%95%E6%95%B4%E7%90%86%E8%A7%84%E8%8C%83.md",
+      "expectedEvidence": "Claimed profile vs generated profile string",
+      "exceptions": [
+        "When media cannot produce a profile string while claim present → Unverifiable/Info not Pass"
+      ],
+      "supersedesLegacy": [
+        "内容物和文件名描述不符。"
+      ],
+      "category": "ContainerNaming"
+    },
+    {
+      "ruleId": "FN.VideoEncoder",
+      "class": "Normative",
+      "group": "Filename",
+      "order": 30,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilename",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E8%A7%86%E9%A2%91%E5%92%8C%E5%AD%97%E5%B9%95%E6%95%B4%E7%90%86%E8%A7%84%E8%8C%83.md",
+      "expectedEvidence": "Claimed video encoder tag vs mapped format",
+      "exceptions": [
+        "Unknown format → Unverifiable/Info"
+      ],
+      "supersedesLegacy": [
+        "内容物和文件名描述不符。"
+      ],
+      "category": "ContainerNaming"
+    },
+    {
+      "ruleId": "FN.AudioEncoders",
+      "class": "Normative",
+      "group": "Filename",
+      "order": 40,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilename",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E8%A7%86%E9%A2%91%E5%92%8C%E5%AD%97%E5%B9%95%E6%95%B4%E7%90%86%E8%A7%84%E8%8C%83.md",
+      "expectedEvidence": "Claimed ordered audio group string vs generated ordered groups",
+      "exceptions": [],
+      "supersedesLegacy": [
+        "内容物和文件名描述不符。"
+      ],
+      "category": "ContainerNaming"
+    },
+    {
+      "ruleId": "TRACK.VideoPresent",
+      "class": "Normative",
+      "group": "Track",
+      "order": 100,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "At least one video track",
+      "exceptions": [],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.AudioPresent",
+      "class": "Normative",
+      "group": "Track",
+      "order": 110,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "At least one audio track",
+      "exceptions": [],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.VideoLanguage",
+      "class": "Normative",
+      "group": "Track",
+      "order": 120,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "Primary video language UND",
+      "exceptions": [
+        "Missing language → Unverifiable/Warning not silent Pass"
+      ],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.VideoDefault",
+      "class": "Normative",
+      "group": "Track",
+      "order": 130,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "Primary video Default=yes",
+      "exceptions": [
+        "Missing Default flag → Unverifiable/Warning"
+      ],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.AudioLanguage",
+      "class": "Normative",
+      "group": "Track",
+      "order": 140,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "Every audio track has a language",
+      "exceptions": [],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.AudioDefaultCardinality",
+      "class": "Normative",
+      "group": "Track",
+      "order": 150,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "Exactly one audio track Default=yes",
+      "exceptions": [],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.PgsLanguage",
+      "class": "Normative",
+      "group": "Track",
+      "order": 160,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "PGS subtitle tracks have language present",
+      "exceptions": [
+        "MenuPgsProfileFlag exempts flood tracks when enabled (disabled in this matrix)"
+      ],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "TRACK.PgsDefault",
+      "class": "Normative",
+      "group": "Track",
+      "order": 170,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "PGS subtitle tracks Default=no",
+      "exceptions": [
+        "MenuPgsProfileFlag exemption disabled in this matrix"
+      ],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "VIDEO.ScanType",
+      "class": "Normative",
+      "group": "Video",
+      "order": 200,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Warning",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/guidance/mp_ng.md",
+      "expectedEvidence": "ScanType progressive",
+      "exceptions": [
+        "Missing ScanType → Unverifiable/Info",
+        "VFR remains review via cell signal not corruption error"
+      ],
+      "supersedesLegacy": [],
+      "category": "FrameRate"
+    },
+    {
+      "ruleId": "VIDEO.ColorRange",
+      "class": "Normative",
+      "group": "Video",
+      "order": 210,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Warning",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/guidance/mp_ng.md",
+      "expectedEvidence": "Colour range present",
+      "exceptions": [
+        "Outside SDR defaults without declared HDR/DVD profile → Advisory review Warning"
+      ],
+      "supersedesLegacy": [],
+      "category": "VideoColor"
+    },
+    {
+      "ruleId": "VIDEO.ColorMatrix",
+      "class": "Normative",
+      "group": "Video",
+      "order": 220,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Warning",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/guidance/mp_ng.md",
+      "expectedEvidence": "Matrix coefficients present",
+      "exceptions": [],
+      "supersedesLegacy": [],
+      "category": "VideoColor"
+    },
+    {
+      "ruleId": "VIDEO.ColorReview",
+      "class": "Advisory",
+      "group": "Video",
+      "order": 230,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainer",
+      "outcomeOnFail": "Violation",
+      "severity": "Warning",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/guidance/mp_ng.md",
+      "expectedEvidence": "Non-SDR range/matrix/transfer/primaries when no declared HDR/DVD profile",
+      "exceptions": [
+        "Declared HDR/DVD review profile suppresses false SDR hard error"
+      ],
+      "supersedesLegacy": [],
+      "category": "VideoColor"
+    },
+    {
+      "ruleId": "CH.LanguageMissing",
+      "class": "Normative",
+      "group": "Chapter",
+      "order": 300,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainerWithChapters",
+      "outcomeOnFail": "Violation",
+      "severity": "Warning",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "Chapter language present when chapters exist",
+      "exceptions": [
+        "MP4 NotApplicable",
+        "Does not supersede Legacy single/multi/first/end chapter warnings"
+      ],
+      "supersedesLegacy": [],
+      "category": "Chapter"
+    },
+    {
+      "ruleId": "CH.LanguageMixed",
+      "class": "Normative",
+      "group": "Chapter",
+      "order": 310,
+      "enabled": true,
+      "applicability": "RecognizedVcbsMkvFilenameAndContainerWithChapters",
+      "outcomeOnFail": "Violation",
+      "severity": "Warning",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "All chapter languages identical when present",
+      "exceptions": [
+        "MP4 NotApplicable"
+      ],
+      "supersedesLegacy": [],
+      "category": "Chapter"
+    },
+    {
+      "ruleId": "MKA.AudioOnlyDefaults",
+      "class": "Normative",
+      "group": "Track",
+      "order": 400,
+      "enabled": false,
+      "applicability": "DisabledUntilDedicatedGrammar",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "No video; all audio defaults disabled",
+      "exceptions": [
+        "Disabled in Phase 0"
+      ],
+      "supersedesLegacy": [],
+      "category": "Track"
+    },
+    {
+      "ruleId": "MP4.MobileTrackLayout",
+      "class": "Normative",
+      "group": "Track",
+      "order": 410,
+      "enabled": false,
+      "applicability": "DisabledUntilDedicatedGrammar",
+      "outcomeOnFail": "Violation",
+      "severity": "Error",
+      "upstreamClauseUrl": "https://github.com/vcb-s/VCB-S_Collation/blob/2cb203644dd4a05335fe4551b1086304f9f623a9/%E5%8E%8B%E5%88%B6%E6%88%90%E5%93%81%E6%96%87%E4%BB%B6%E8%A7%84%E6%A0%BC.md",
+      "expectedEvidence": "One video, one AAC audio, no embedded subs",
+      "exceptions": [
+        "Disabled in Phase 0"
+      ],
+      "supersedesLegacy": [],
+      "category": "Track"
+    }
+  ],
+  "resolutionBuckets": {
+    "1080p": [
+      {
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "width": 1920,
+        "height": 1072
+      }
+    ],
+    "720p": [
+      {
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "576p": [
+      {
+        "width": 720,
+        "height": 576
+      }
+    ],
+    "480p": [
+      {
+        "width": 720,
+        "height": 480
+      }
+    ]
+  },
+  "sdrDefaults": {
+    "colourRange": [
+      "Limited",
+      "Full"
+    ],
+    "matrixCoefficients": [
+      "BT.709",
+      "BT.601"
+    ],
+    "transferCharacteristics": [
+      "BT.709",
+      "BT.601"
+    ],
+    "colourPrimaries": [
+      "BT.709",
+      "BT.601"
+    ]
+  },
+  "legacySupersession": {
+    "genericFilenameMismatchDescription": "内容物和文件名描述不符。",
+    "filenameRuleIds": [
+      "FN.Resolution",
+      "FN.Profile",
+      "FN.VideoEncoder",
+      "FN.AudioEncoders"
+    ]
+  },
+  "signalSupersession": {
+    "SIG.ChapterLanguage": [
+      "CH.LanguageMissing",
+      "CH.LanguageMixed"
+    ],
+    "SIG.FpsReview": [],
+    "SIG.ColorSpace": [
+      "VIDEO.ColorRange",
+      "VIDEO.ColorMatrix",
+      "VIDEO.ColorReview"
+    ],
+    "SIG.MultiSubtitle": []
+  },
+  "applicabilityPredicates": {
+    "RecognizedVcbsMkvFilename": {
+      "grammarId": "vcbs-mkv-release-v1",
+      "requireMatroska": false,
+      "requireExtension": ".mkv"
+    },
+    "RecognizedVcbsMkvFilenameAndContainer": {
+      "grammarId": "vcbs-mkv-release-v1",
+      "requireMatroska": true,
+      "containerFormatEquals": [
+        "Matroska"
+      ],
+      "containerFormatComparer": "OrdinalIgnoreCase",
+      "requireExtension": ".mkv"
+    },
+    "RecognizedVcbsMkvFilenameAndContainerWithChapters": {
+      "grammarId": "vcbs-mkv-release-v1",
+      "requireMatroska": true,
+      "containerFormatEquals": [
+        "Matroska"
+      ],
+      "containerFormatComparer": "OrdinalIgnoreCase",
+      "requireExtension": ".mkv",
+      "requireChaptersPresent": true
+    },
+    "DisabledUntilDedicatedGrammar": {
+      "alwaysFalse": true
+    }
+  },
+  "filenameGrammarAllowlists": {
+    "vcbs-mkv-release-v1": {
+      "profiles": [
+        "",
+        "Ma10p",
+        "Ma444-10p",
+        "Hi444pp",
+        "Hi10p"
+      ],
+      "videoEncoders": [
+        "x264",
+        "x265"
+      ],
+      "resolutions": [
+        "1080p",
+        "720p",
+        "576p",
+        "480p"
+      ]
+    }
+  },
+  "approvedColorReviewProfiles": [
+    "HDR",
+    "HDR10",
+    "HDR10+",
+    "HLG",
+    "Dolby Vision",
+    "DV",
+    "DVD",
+    "DVD-Video"
+  ]
+}

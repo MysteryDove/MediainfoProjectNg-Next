@@ -13,6 +13,16 @@ public sealed class MediaFileInfo
     public string Summary { get; set; } = string.Empty;
     public IReadOnlyList<ValidationFinding> Findings { get; private set; } = Array.Empty<ValidationFinding>();
 
+    /// <summary>
+    /// Optional presence-preserving raw snapshot for Collation rules.
+    /// </summary>
+    public RawMediaSnapshot? RawSnapshot { get; set; }
+
+    /// <summary>
+    /// When set, HDR/DVD declared review profile suppresses false SDR hard failures.
+    /// </summary>
+    public string? DeclaredColorReviewProfile { get; set; }
+
     public MediaFileInfo(GeneralInfo generalInfo)
     {
         GeneralInfo = generalInfo;

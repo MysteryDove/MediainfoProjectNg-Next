@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="MediainfoProjectNg.Next.App"
              xmlns:local="using:MediainfoProjectNg.Next"
-             RequestedThemeVariant="Light">
-             <!-- Always light theme (never system dark). Chrome uses WPF-like Control gray, not pure white. -->
+             RequestedThemeVariant="Default">
+             <!-- Follow the OS theme; WPF-like chrome resources provide light and dark variants. -->
 
     <Application.DataTemplates>
         <local:ViewLocator />

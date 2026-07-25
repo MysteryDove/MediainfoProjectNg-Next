@@ -5,6 +5,39 @@ namespace MediainfoProjectNg.Next.Tests.Presentation;
 public class MainWindowLayoutTests
 {
     [Fact]
+    public void CategoryCount_NotifiesComputedButtonText_AndFiltersReconcileSelection()
+    {
+        var root = FindRepoRoot();
+        var toggleSource = File.ReadAllText(Path.Combine(
+            root, "src", "MediainfoProjectNg.Next", "ViewModels", "CategoryToggleViewModel.cs"));
+        var viewSource = File.ReadAllText(Path.Combine(
+            root, "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml.cs"));
+        var axaml = File.ReadAllText(Path.Combine(
+            root, "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+
+        Assert.Contains("[NotifyPropertyChangedFor(nameof(ButtonText))]", toggleSource, StringComparison.Ordinal);
+        Assert.Contains("Click=\"CategoryFilter_OnClick\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Click=\"ClearCategoryFilters_OnClick\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("ReconcileGridSelectionWithVisible(primary, selected);", viewSource, StringComparison.Ordinal);
+        Assert.Contains("e.NewSize.Height * 0.45", viewSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("MaxHeight=\"200\"", axaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void App_FollowsSystemTheme_WithLightAndDarkChromeResources()
+    {
+        var root = FindRepoRoot();
+        var app = File.ReadAllText(Path.Combine(root, "src", "MediainfoProjectNg.Next", "App.axaml"));
+        var theme = File.ReadAllText(Path.Combine(
+            root, "src", "MediainfoProjectNg.Next", "Themes", "WpfClassicLight.axaml"));
+
+        Assert.Contains("RequestedThemeVariant=\"Default\"", app, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"Light\"", theme, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"Dark\"", theme, StringComparison.Ordinal);
+        Assert.Contains("Wpf.DataGridRowDefaultBrush", theme, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FileGrid_UsesCompactAutomaticLayout()
     {
         var fileGrid = LoadFileGrid();
@@ -39,16 +72,121 @@ public class MainWindowLayoutTests
         });
     }
 
+    [Fact]
+    public void FilterStrip_IsInLeftColumn_AboveFileGrid()
+    {
+        var doc = LoadDocument();
+        var axaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+
+        // Left column host owns Grid.Column="0" and the filter strip; strip does not span right panel.
+        Assert.Contains("x:Name=\"LeftColumnHost\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Grid.Column=\"0\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CategoryFilterStrip\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"0\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"FileGrid\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Grid.Row=\"1\"", axaml, StringComparison.Ordinal);
+
+        var leftHost = doc.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "LeftColumnHost"));
+        Assert.Contains(leftHost.Descendants(),
+            e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "CategoryFilterStrip"));
+        Assert.Contains(leftHost.Descendants(),
+            e => e.Name.LocalName == "DataGrid"
+                 && e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "FileGrid"));
+
+        var rightPanel = doc.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "RightPanel"));
+        Assert.DoesNotContain(rightPanel.Descendants(),
+            e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "CategoryFilterStrip"));
+    }
+
+    [Fact]
+    public void TooltipShowDelay_Is600ms_OnRows()
+    {
+        var axaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+        Assert.Contains("ToolTip.ShowDelay\" Value=\"600\"", axaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TooltipGeometry_IsBounded_WithWrapAndClip()
+    {
+        var axaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+        // Bounds must be window/app-level (popup is not under DataGrid).
+        Assert.Contains("Window.Styles", axaml, StringComparison.Ordinal);
+        Assert.Contains("MaxWidth\" Value=\"360\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("MaxHeight\" Value=\"240\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("ClipToBounds\" Value=\"True\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("TextWrapping\" Value=\"Wrap\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"ToolTip TextBlock\"", axaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FindingsSection_BindsStructuredEvidence()
+    {
+        var axaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+        Assert.Contains("Binding Evidence", axaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RightPanel_OrdersFindingsBeforeMediaInfo()
+    {
+        var doc = LoadDocument();
+        var host = doc.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "RightContentHost"));
+        var findings = host.Descendants()
+            .First(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "FindingsSection"));
+        var media = host.Descendants()
+            .First(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "MediaInfoSummaryBox")
+                        || e.Name.LocalName == "TextBox");
+
+        var findingsRow = findings.Attributes().FirstOrDefault(a => a.Name.LocalName == "Row")?.Value ?? "0";
+        Assert.Equal("0", findingsRow);
+        Assert.NotNull(media);
+    }
+
+    [Fact]
+    public void ClearFiltersButton_HasChineseAccessibleName()
+    {
+        var doc = LoadDocument();
+        var btn = doc.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "ClearFiltersButton"));
+        Assert.Equal("全部", (string?)btn.Attribute("Content")
+            ?? btn.Attributes().FirstOrDefault(a => a.Name.LocalName == "Content")?.Value);
+        var accessible = btn.Attributes().FirstOrDefault(a => a.Name.LocalName == "Name"
+            && a.Name.NamespaceName.Contains("automation", StringComparison.OrdinalIgnoreCase)
+            || a.Name.LocalName == "Name" && a.Value == "全部");
+        // AutomationProperties.Name="全部"
+        Assert.Contains(btn.Attributes(), a => a.Value == "全部");
+    }
+
+    [Fact]
+    public void NoLeftPaneTabOrPerRuleRainbowStrip()
+    {
+        var doc = LoadDocument();
+        var names = doc.Descendants()
+            .SelectMany(e => e.Attributes())
+            .Where(a => a.Name.LocalName == "Name")
+            .Select(a => a.Value)
+            .ToList();
+        Assert.DoesNotContain(names, n => n.Contains("TabControl", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Contains("Rainbow", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(names, n => n.Contains("PerRule", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static XElement LoadFileGrid()
     {
-        var root = FindRepoRoot();
-        var path = Path.Combine(root, "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml");
-        var document = XDocument.Load(path);
-
+        var document = LoadDocument();
         return document
             .Descendants()
             .Single(e => e.Name.LocalName == "DataGrid"
                          && e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "FileGrid"));
+    }
+
+    private static XDocument LoadDocument()
+    {
+        var root = FindRepoRoot();
+        var path = Path.Combine(root, "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml");
+        return XDocument.Load(path);
     }
 
     private static void AssertStyleSetters(

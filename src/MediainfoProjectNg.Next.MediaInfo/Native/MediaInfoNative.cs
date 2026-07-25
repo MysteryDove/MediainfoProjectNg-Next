@@ -135,16 +135,17 @@ internal static partial class MediaInfoNative
     public static string Inform(IntPtr handle)
     {
         var ptr = UseUnicodeApi ? InformW(handle, 0) : InformA(handle, 0);
-        return PtrToString(ptr);
+        return PtrToString(ptr) ?? string.Empty;
     }
 
     public static string Option(IntPtr handle, string option, string value = "")
     {
         var ptr = UseUnicodeApi ? OptionW(handle, option, value) : OptionA(handle, option, value);
-        return PtrToString(ptr);
+        return PtrToString(ptr) ?? string.Empty;
     }
 
-    public static string Get(IntPtr handle, StreamKind streamKind, int streamNumber, string parameter)
+    /// <summary>Null when MediaInfo returns a null pointer (absent field).</summary>
+    public static string? Get(IntPtr handle, StreamKind streamKind, int streamNumber, string parameter)
     {
         var ptr = UseUnicodeApi
             ? GetW(handle, (int)streamKind, (nuint)streamNumber, parameter, (int)InfoKind.Text, (int)InfoKind.Name)
@@ -152,7 +153,7 @@ internal static partial class MediaInfoNative
         return PtrToString(ptr);
     }
 
-    public static string GetByIndex(IntPtr handle, StreamKind streamKind, int streamNumber, int parameter, InfoKind kind)
+    public static string? GetByIndex(IntPtr handle, StreamKind streamKind, int streamNumber, int parameter, InfoKind kind)
     {
         var ptr = UseUnicodeApi
             ? GetIW(handle, (int)streamKind, (nuint)streamNumber, (nuint)parameter, (int)kind)
@@ -163,16 +164,20 @@ internal static partial class MediaInfoNative
     public static int Count(IntPtr handle, StreamKind streamKind) =>
         (int)CountGet(handle, (int)streamKind, unchecked((nuint)(-1)));
 
-    private static string PtrToString(IntPtr ptr)
+    /// <summary>
+    /// Null pointer → null (Absent). Empty string stays empty (PresentEmpty).
+    /// Does not collapse missing parameters into empty string.
+    /// </summary>
+    private static string? PtrToString(IntPtr ptr)
     {
         if (ptr == IntPtr.Zero)
         {
-            return string.Empty;
+            return null;
         }
 
         return UseUnicodeApi
-            ? (Marshal.PtrToStringUni(ptr) ?? string.Empty)
-            : (Marshal.PtrToStringUTF8(ptr) ?? string.Empty);
+            ? Marshal.PtrToStringUni(ptr)
+            : Marshal.PtrToStringUTF8(ptr);
     }
 }
 

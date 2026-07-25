@@ -166,8 +166,10 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Extended selection must only delete visible selected rows.
         var selected = FileGrid.SelectedItems
             .OfType<MediaFileRowViewModel>()
+            .Where(r => Vm.Files.Contains(r))
             .ToList();
         if (selected.Count == 0)
         {
@@ -177,6 +179,69 @@ public partial class MainWindow : Window
         Vm.RemoveRows(selected);
         e.Handled = true;
     }
+
+    private void CategoryFilter_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is null
+            || sender is not ToggleButton { DataContext: CategoryToggleViewModel toggle }
+            || !Vm.ToggleCategoryCommand.CanExecute(toggle))
+        {
+            return;
+        }
+
+        var primary = Vm.SelectedFile;
+        var selected = FileGrid.SelectedItems.OfType<MediaFileRowViewModel>().ToList();
+        Vm.ToggleCategoryCommand.Execute(toggle);
+        ReconcileGridSelectionWithVisible(primary, selected);
+    }
+
+    private void ClearCategoryFilters_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is null || !Vm.ClearCategoryFiltersCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        var primary = Vm.SelectedFile;
+        var selected = FileGrid.SelectedItems.OfType<MediaFileRowViewModel>().ToList();
+        Vm.ClearCategoryFiltersCommand.Execute(null);
+        ReconcileGridSelectionWithVisible(primary, selected);
+    }
+
+    private void RightContentHost_OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        FindingsSection.MaxHeight = Math.Max(0, e.NewSize.Height * 0.45);
+    }
+
+    /// <summary>
+    /// After filter-driven selection changes, intersect grid SelectedItems with the visible set.
+    /// </summary>
+    public void ReconcileGridSelectionWithVisible()
+    {
+        var selected = FileGrid.SelectedItems.OfType<MediaFileRowViewModel>().ToList();
+        ReconcileGridSelectionWithVisible(Vm?.SelectedFile, selected);
+    }
+
+    private void ReconcileGridSelectionWithVisible(
+        MediaFileRowViewModel? primary,
+        IReadOnlyList<MediaFileRowViewModel> selected)
+    {
+        if (Vm is null)
+        {
+            return;
+        }
+
+        var (reconciledPrimary, kept) = Vm.ReconcileExtendedSelection(primary, selected);
+        FileGrid.SelectedItems.Clear();
+        foreach (var row in kept)
+        {
+            FileGrid.SelectedItems.Add(row);
+        }
+
+        FileGrid.SelectedItem = reconciledPrimary;
+        Vm.SelectedFile = reconciledPrimary;
+    }
+
 
     private void FileGrid_OnDoubleTapped(object? sender, TappedEventArgs e)
     {

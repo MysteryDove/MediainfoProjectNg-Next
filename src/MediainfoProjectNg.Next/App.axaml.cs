@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using MediainfoProjectNg.Next.Core.Loading;
+using MediainfoProjectNg.Next.Domain.Validation;
 using MediainfoProjectNg.Next.MediaInfo;
 using MediainfoProjectNg.Next.ViewModels;
 using MediainfoProjectNg.Next.Views;
@@ -25,8 +26,9 @@ public partial class App : Application
             desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
             // Manual composition root (no DI container): reader → load service → VM.
+            // Post-V1 desktop is the only owner that activates CollationV1.
             var reader = new MediaInfoMetadataReader();
-            var loadService = new MediaLoadService(reader);
+            var loadService = new MediaLoadService(reader, ValidationProfile.CollationV1);
             var viewModel = new MainWindowViewModel(loadService, reader);
 
             desktop.MainWindow = new MainWindow

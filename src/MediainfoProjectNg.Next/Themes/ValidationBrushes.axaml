@@ -13,13 +13,14 @@
     <SolidColorBrush x:Key="Val.WarningDelayTeal" Color="#FF00A4AC" />
     <SolidColorBrush x:Key="Val.InfoGreenYellow" Color="#FFADFF2F" />
 
-    <SolidColorBrush x:Key="Val.ForegroundMultiSub" Color="#FF0000FF" />
-    <SolidColorBrush x:Key="Val.FpsVfr" Color="#FF9400D3" />
-    <SolidColorBrush x:Key="Val.FpsNtsc" Color="#FF808000" />
-    <SolidColorBrush x:Key="Val.FpsRounded" Color="#FF6A5ACD" />
-    <SolidColorBrush x:Key="Val.FpsOther" Color="#FF800000" />
-    <SolidColorBrush x:Key="Val.ColorSpaceNon420" Color="#FFFFA500" />
+    <!-- Light-theme readable hues (legacy mpng ports) -->
+    <SolidColorBrush x:Key="Val.ForegroundMultiSub" Color="#FF4DA3FF" />
+    <SolidColorBrush x:Key="Val.FpsVfr" Color="#FFC77DFF" />
+    <SolidColorBrush x:Key="Val.FpsNtsc" Color="#FFD4C45A" />
+    <SolidColorBrush x:Key="Val.FpsRounded" Color="#FF9B8CFF" />
+    <SolidColorBrush x:Key="Val.FpsOther" Color="#FFFF6B6B" />
+    <SolidColorBrush x:Key="Val.ColorSpaceNon420" Color="#FFFFB347" />
 
-    <!-- Dark-theme multi-sub / default fg still legible on dark rows -->
     <SolidColorBrush x:Key="Val.ForegroundDefault" Color="#FF000000" />
 </ResourceDictionary>
+

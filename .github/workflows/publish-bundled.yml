@@ -22,6 +22,79 @@ permissions:
   contents: read
 
 jobs:
+  native-projection:
+    name: native-projection (linux-x64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install native build tools (Linux)
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ zlib1g-dev ffmpeg
+
+      - name: Build MediaInfo native for linux-x64
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x native/build-rid.sh
+          ./native/build-rid.sh linux-x64
+
+      - name: Stage MediaInfo for test host
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Place libmediainfo where the managed loader can resolve it for tests.
+          mkdir -p native/out/linux-x64
+          if [[ -f native/dist/linux-x64/libmediainfo.so ]]; then
+            cp -f native/dist/linux-x64/libmediainfo.so native/out/linux-x64/ || true
+          fi
+          find native -name 'libmediainfo.so' -print
+
+      - name: Generate required native projection fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p fixtures/media
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i "color=c=black:s=32x32:r=24:d=1" \
+            -f lavfi -i "anullsrc=r=48000:cl=stereo" \
+            -shortest \
+            -c:v mpeg4 -pix_fmt yuv420p \
+            -c:a aac \
+            -metadata:s:v:0 language=und -disposition:v:0 default \
+            -metadata:s:a:0 language=jpn -disposition:a:0 default \
+            -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
+            fixtures/media/native-projection.mkv
+          test -s fixtures/media/native-projection.mkv
+
+      - name: Run MediaInfoProjectionIntegrationTests (fail-closed)
+        shell: bash
+        env:
+          MPNG_NATIVE_PROJECTION_REQUIRED: "1"
+        run: |
+          set -euo pipefail
+          # Ensure the native library is discoverable.
+          export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/native/dist/linux-x64:$(pwd)/native/out/linux-x64"
+          shopt -s nullglob
+          for d in native/dist/linux-x64 native/out/linux-x64; do
+            if [[ -d "$d" ]]; then
+              export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(cd "$d" && pwd)"
+            fi
+          done
+          find . -name 'libmediainfo.so' | head
+          dotnet test tests/MediainfoProjectNg.Next.Tests/MediainfoProjectNg.Next.Tests.csproj \
+            -c Release \
+            --filter "FullyQualifiedName~MediaInfoProjectionIntegrationTests" \
+            --logger "console;verbosity=detailed"
+
   publish:
     name: publish (${{ matrix.rid }})
     strategy:

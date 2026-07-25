@@ -34,6 +34,6 @@ public sealed class SelectionAwareBrushConverter : IMultiValueConverter
 
         return string.Equals(mode, "Background", StringComparison.OrdinalIgnoreCase)
             ? Brushes.Transparent
-            : Brushes.Black;
+            : ColorTokenToBrushConverter.DefaultForegroundBrush();
     }
 }

@@ -47,6 +47,28 @@ public class MediaLoadServiceTests
     }
 
     [Fact]
+    public async Task FileAndParentDirectory_InSameBatch_LoadOnce()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mpng-next-load-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var file = Path.Combine(dir, "v.mkv");
+            await File.WriteAllBytesAsync(file, [0]);
+
+            var svc = new MediaLoadService(new FakeReader());
+            var (info, _) = await svc.LoadAsync([file, dir]);
+
+            Assert.Single(info);
+            Assert.Equal(file, info[0].GeneralInfo.FullPath);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
     public async Task ExcludedExtensions_Skipped()
     {
         var dir = Path.Combine(Path.GetTempPath(), "mpng-next-load-" + Guid.NewGuid().ToString("N"));
@@ -81,7 +103,7 @@ public class MediaLoadServiceTests
             await File.WriteAllBytesAsync(mkv, [0]);
             string? seen = null;
             var svc = new MediaLoadService(new FakeReader());
-            await svc.LoadAsync([mkv], progressCallback: p => seen = p);
+            await svc.LoadAsync([mkv], progress: new Progress<string>(p => seen = p));
             Assert.Equal(mkv, seen);
         }
         finally

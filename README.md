@@ -2,13 +2,16 @@
 
 Cross-platform rewrite of MediainfoProjectNg for .NET 10 + Avalonia.
 
-**Status:** V1 implementation in progress (team execution from approved plan).
+**Status:** V1 complete; post-V1 `CollationV1` validation + findings-discovery UI enabled in the desktop composition root.
 
 ## Spec and plan
 
 - Product requirements: [`SPEC.md`](SPEC.md)
 - Implementation plan: [`.omc/plans/ralplan-mediainfoprojectng-next-v1.md`](.omc/plans/ralplan-mediainfoprojectng-next-v1.md)
-- Behavioral reference (unchanged): `../mpng`
+- Collation PRD: [`.omx/plans/prd-collation-media-validation.md`](.omx/plans/prd-collation-media-validation.md)
+- Collation policy approval: [`.omx/specs/collation-v1-policy-approval.md`](.omx/specs/collation-v1-policy-approval.md)
+- Findings discovery notes: [`docs/collation-v1-findings-discovery.md`](docs/collation-v1-findings-discovery.md)
+- Behavioral reference (unchanged LegacyV1): `../mpng`
 
 ## Solution layout
 
@@ -51,7 +54,7 @@ macOS: first launch may require **System Settings → Privacy & Security → Ope
 | Trigger | Workflow | What runs |
 | --- | --- | --- |
 | **Push** to `main` | `build-check` | Quick **managed** restore / build / unit tests only (no native MediaInfo, no multi-RID publish) |
-| **Pull request** | `build-check` → `publish-bundled` | Tests, then **full** self-contained publish for all RIDs with MediaInfo native bundled |
+| **Pull request** | `build-check` → `publish-bundled` | Tests, then **full** self-contained publish for all RIDs with MediaInfo native bundled; includes fail-closed `native-projection` job (`MediaInfoProjectionIntegrationTests` on linux-x64) |
 | **draft-release** (manual) | `draft-release` → `publish-bundled` | Same full packages; with `dry_run=false` attaches zips to a GitHub **draft** release |
 | Manual | `publish-bundled` or `build-check` with *publish_bundled* | Full packages on demand |
 

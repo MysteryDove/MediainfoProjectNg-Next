@@ -1,24 +1,15 @@
 using MediainfoProjectNg.Next.Domain.Models;
+using MediainfoProjectNg.Next.Domain.Validation;
 
 namespace MediainfoProjectNg.Next.Core.Presentation;
 
 /// <summary>
 /// Pure presentation rules ported from mpng converters and CheckFile brush assignments.
 /// Row background uses the <b>first</b> finding (legacy InfoToBackgroundConverter), not worst severity.
+/// Structured Collation filename rule IDs map to <see cref="ColorToken.ErrorViolet"/>.
 /// </summary>
 public static class LegacyColorRules
 {
-    // Exact description strings from MediaValidator / Utils.CheckFile
-    private const string DescExtMismatchPrefix = "文件后缀和与容器不符";
-    private const string DescDelay = "容器中含有延时非 0 的轨道。";
-    private const string DescDuration = "轨道间长度相差过大。";
-    private const string DescSingleChapter = "文件只有一个章节。";
-    private const string DescMultiChapterSets = "文件存在多组章节。";
-    private const string DescUselessChapter = "文件末尾有无用章节。";
-    private const string DescFirstChapter = "首个章节时间戳非零。";
-    private const string DescFilenameMismatch = "内容物和文件名描述不符。";
-    private const string DescMultiAudio = "文件含有多条音轨。";
-
     /// <summary>Legacy FirstOrDefault on CheckFile results → row background token.</summary>
     public static ColorToken FirstFindingBackgroundToken(IReadOnlyList<ValidationFinding> findings)
     {
@@ -32,33 +23,41 @@ public static class LegacyColorRules
 
     public static ColorToken TokenForFinding(ValidationFinding finding)
     {
-        var d = finding.Description;
-        if (d.StartsWith(DescExtMismatchPrefix, StringComparison.Ordinal))
-        {
-            return ColorToken.ErrorRed;
-        }
-
-        if (d == DescDelay)
-        {
-            return ColorToken.WarningDelayTeal;
-        }
-
-        if (d == DescDuration)
-        {
-            return ColorToken.WarningPaleVioletRed;
-        }
-
-        if (d is DescSingleChapter or DescMultiChapterSets or DescUselessChapter or DescFirstChapter)
-        {
-            return ColorToken.WarningYellow;
-        }
-
-        if (d == DescFilenameMismatch)
+        // Prefer structured rule identity for Collation filename errors.
+        if (finding.RuleId is not null
+            && CollationRuleIds.FilenameRuleOrder.Contains(finding.RuleId)
+            && finding.Level == ErrorLevel.Error)
         {
             return ColorToken.ErrorViolet;
         }
 
-        if (d == DescMultiAudio)
+        var d = finding.Description;
+        if (LegacyFindingMatchers.IsExtensionMismatch(d))
+        {
+            return ColorToken.ErrorRed;
+        }
+
+        if (LegacyFindingMatchers.IsDelay(d))
+        {
+            return ColorToken.WarningDelayTeal;
+        }
+
+        if (LegacyFindingMatchers.IsDuration(d))
+        {
+            return ColorToken.WarningPaleVioletRed;
+        }
+
+        if (LegacyFindingMatchers.IsChapterLegacy(d))
+        {
+            return ColorToken.WarningYellow;
+        }
+
+        if (LegacyFindingMatchers.IsFilenameMismatch(d))
+        {
+            return ColorToken.ErrorViolet;
+        }
+
+        if (LegacyFindingMatchers.IsMultiAudio(d))
         {
             return ColorToken.InfoGreenYellow;
         }

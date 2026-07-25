@@ -8,5 +8,10 @@
     <RootNamespace>MediainfoProjectNg.Next</RootNamespace>
     <Company>MediainfoProjectNg-Next</Company>
     <Product>MediainfoProjectNg.Next</Product>
+    <!-- Product version shown in the main window title bar (and packaging). -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
   </PropertyGroup>
 </Project>

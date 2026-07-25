@@ -6,13 +6,34 @@ namespace MediainfoProjectNg.Next.Domain.Validation;
 /// <summary>
 /// Ports legacy Utils.CheckFile / FileNameContentMatched / generators.
 /// Messages and thresholds preserved from ../mpng.
+/// CollationV1 merges structured evaluations via Algorithm A without changing
+/// parameterless <see cref="CheckFile(MediaFileInfo)"/> behaviour.
 /// </summary>
 public static class MediaValidator
 {
     private static readonly string[] Matroska = [".mkv", ".mka", ".mks"];
     private static readonly string[] Mpeg4 = [".mp4", ".m4a", ".m4v"];
 
-    public static IReadOnlyList<ValidationFinding> CheckFile(MediaFileInfo info)
+    /// <summary>
+    /// LegacyV1 entry point. Exact findings, text, order, and early-return behaviour.
+    /// </summary>
+    public static IReadOnlyList<ValidationFinding> CheckFile(MediaFileInfo info) =>
+        CheckFileLegacyCore(info);
+
+    /// <summary>
+    /// Profile-aware entry point. Omitted profile / LegacyV1 preserves parameterless behaviour.
+    /// </summary>
+    public static IReadOnlyList<ValidationFinding> CheckFile(MediaFileInfo info, ValidationProfile profile)
+    {
+        if (profile == ValidationProfile.LegacyV1)
+        {
+            return CheckFileLegacyCore(info);
+        }
+
+        return MergeCollation(info);
+    }
+
+    private static List<ValidationFinding> CheckFileLegacyCore(MediaFileInfo info)
     {
         var ret = new List<ValidationFinding>();
         var extension = Path.GetExtension(info.GeneralInfo.FullPath);
@@ -79,7 +100,7 @@ public static class MediaValidator
         {
             ret.Add(new ValidationFinding(
                 ErrorLevel.Error,
-                "内容物和文件名描述不符。"));
+                CollationPolicyMatrix.LegacyFilenameMismatchDescription));
         }
 
         if (info.AudioInfos.Count > 2)
@@ -90,6 +111,97 @@ public static class MediaValidator
         }
 
         return ret;
+    }
+
+    /// <summary>
+    /// Algorithm A: compute Legacy stream first (including empty-duration early return),
+    /// then merge Collation evaluations with supersession and append rules.
+    /// </summary>
+    private static IReadOnlyList<ValidationFinding> MergeCollation(MediaFileInfo info)
+    {
+        var legacy = CheckFileLegacyCore(info);
+        var evaluations = CollationEvaluator.Evaluate(info);
+
+        // PRD: filename Violation/Error before Unverifiable/Info siblings so mixed
+        // results retain ErrorViolet first-finding emphasis; then matrix rule order.
+        var filenameEvals = evaluations
+            .Where(e => CollationRuleIds.FilenameRuleOrder.Contains(e.RuleId) && e.IsVisibleFinding)
+            .OrderBy(e => e.Outcome == RuleOutcome.Violation ? 0 : 1)
+            .ThenBy(e => e.Severity == ErrorLevel.Error ? 0 : e.Severity == ErrorLevel.Warning ? 1 : 2)
+            .ThenBy(e => FilenameOrderIndex(e.RuleId))
+            .ToList();
+
+        var otherEvals = evaluations
+            .Where(e => !CollationRuleIds.FilenameRuleOrder.Contains(e.RuleId) && e.IsVisibleFinding)
+            .OrderBy(e => EnabledOrderIndex(e.RuleId))
+            .ToList();
+
+        var merged = new List<ValidationFinding>();
+        var genericIndex = legacy.ToList().FindIndex(f =>
+            f.Description == CollationPolicyMatrix.LegacyFilenameMismatchDescription
+            && f.RuleId is null);
+
+        var recognized = CollationFilenameParser.IsRecognizedVcbsMkv(info);
+        var insertedFilename = false;
+
+        for (var i = 0; i < legacy.Count; i++)
+        {
+            if (recognized && i == genericIndex && genericIndex >= 0)
+            {
+                // Supersede generic once; insert field-specific findings at the slot.
+                foreach (var eval in filenameEvals)
+                {
+                    merged.Add(ValidationFinding.FromEvaluation(eval));
+                }
+
+                insertedFilename = true;
+                continue;
+            }
+
+            merged.Add(legacy[i]);
+        }
+
+        if (recognized && !insertedFilename && filenameEvals.Count > 0)
+        {
+            // No generic filename slot (match or early return): append filename findings.
+            foreach (var eval in filenameEvals)
+            {
+                merged.Add(ValidationFinding.FromEvaluation(eval));
+            }
+        }
+
+        foreach (var eval in otherEvals)
+        {
+            merged.Add(ValidationFinding.FromEvaluation(eval));
+        }
+
+        return merged;
+    }
+
+    private static int FilenameOrderIndex(string ruleId)
+    {
+        for (var i = 0; i < CollationRuleIds.FilenameRuleOrder.Count; i++)
+        {
+            if (CollationRuleIds.FilenameRuleOrder[i] == ruleId)
+            {
+                return i;
+            }
+        }
+
+        return int.MaxValue;
+    }
+
+    private static int EnabledOrderIndex(string ruleId)
+    {
+        for (var i = 0; i < CollationRuleIds.EnabledOrder.Count; i++)
+        {
+            if (CollationRuleIds.EnabledOrder[i] == ruleId)
+            {
+                return i;
+            }
+        }
+
+        return int.MaxValue;
     }
 
     /// <summary>

@@ -53,12 +53,12 @@ macOS: first launch may require **System Settings → Privacy & Security → Ope
 
 | Trigger | Workflow | What runs |
 | --- | --- | --- |
-| **Push** to `main` | `build-check` | Quick **managed** restore / build / unit tests only (no native MediaInfo, no multi-RID publish) |
+| **Push** to `main` | `build-check` → `publish-bundled` | Tests, then **full** self-contained publish for all RIDs with MediaInfo native bundled and downloadable artifacts; includes fail-closed `native-projection` |
 | **Pull request** | `build-check` → `publish-bundled` | Tests, then **full** self-contained publish for all RIDs with MediaInfo native bundled; includes fail-closed `native-projection` job (`MediaInfoProjectionIntegrationTests` on linux-x64) |
 | **draft-release** (manual) | `draft-release` → `publish-bundled` | Same full packages; with `dry_run=false` attaches zips to a GitHub **draft** release |
 | Manual | `publish-bundled` or `build-check` with *publish_bundled* | Full packages on demand |
 
-Bundled package artifacts (PR / draft-release / manual):
+Bundled package artifacts (push / PR / draft-release / manual):
 
 | Artifact name | Contents |
 | --- | --- |

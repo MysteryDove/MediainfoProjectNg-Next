@@ -1,5 +1,5 @@
-# Quick gate on every push: managed compile + unit tests only (no native bundle).
-# Full MediaInfo-bundled multi-RID publish runs on pull_request (and via publish-bundled).
+# Every main/master push and pull request runs managed checks followed by
+# a full MediaInfo-bundled multi-RID publish with downloadable artifacts.
 name: build-check
 
 on:
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Always: solution build + unit tests (no MediaInfo native / no multi-RID publish)
+  # Always: managed gate before the separate bundled publish job.
   # ---------------------------------------------------------------------------
   managed:
     name: managed (build + test)
@@ -70,17 +70,18 @@ jobs:
             echo "## build-check (quick)"
             echo ""
             echo "- event: \`${{ github.event_name }}\`"
-            echo "- managed compile + tests only on **push**"
-            echo "- MediaInfo-bundled multi-RID publish: **pull_request**, **draft-release**, or manual **publish-bundled** / build-check with publish_bundled=true"
+            echo "- managed compile + tests on **push** and **pull_request**"
+            echo "- MediaInfo-bundled multi-RID publish: **push**, **pull_request**, **draft-release**, or manual **publish-bundled** / build-check with publish_bundled=true"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
-  # PR (and optional manual): full self-contained + MediaInfo for all RIDs
+  # Push, PR, and optional manual: full self-contained + MediaInfo for all RIDs
   # ---------------------------------------------------------------------------
   publish-bundled:
     name: publish-bundled
     needs: managed
     if: >
+      github.event_name == 'push' ||
       github.event_name == 'pull_request' ||
       (github.event_name == 'workflow_dispatch' && inputs.publish_bundled == true)
     uses: ./.github/workflows/publish-bundled.yml

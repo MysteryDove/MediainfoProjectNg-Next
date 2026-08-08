@@ -1,5 +1,5 @@
 # Self-contained multi-RID publish with MediaInfo native bundled.
-# Called from pull_request (via build-check) and draft-release; also manual dispatch.
+# Called from push/pull_request (via build-check) and draft-release; also manual dispatch.
 name: publish-bundled
 
 on:

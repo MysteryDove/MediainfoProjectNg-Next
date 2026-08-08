@@ -82,7 +82,7 @@ public static class LegacyColorRules
             _ => ColorToken.None
         };
 
-    /// <summary>Legacy InfoToForegroundConverter: TextCount &gt; 1 → blue.</summary>
+    /// <summary>Legacy InfoToForegroundConverter signal: TextCount &gt; 1.</summary>
     public static ColorToken RowForegroundToken(long textCount) =>
         textCount > 1 ? ColorToken.ForegroundMultiSub : ColorToken.None;
 

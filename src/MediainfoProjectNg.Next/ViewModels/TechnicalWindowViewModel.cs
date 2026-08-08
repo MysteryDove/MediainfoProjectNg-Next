@@ -32,12 +32,8 @@ public sealed class FindingRowViewModel
         Level = finding.Level.ToString();
         Description = finding.Description;
         var token = LegacyColorRules.TokenForFinding(finding);
-        BackgroundBrush = token == ColorToken.None
-            ? Brushes.Transparent
-            : ColorTokenToBrushConverter.TokenToBrush(token);
-        ForegroundBrush = token == ColorToken.None
-            ? ColorTokenToBrushConverter.DefaultForegroundBrush()
-            : Brushes.Black;
+        BackgroundBrush = ColorTokenToBrushConverter.TokenToBackgroundBrush(token);
+        ForegroundBrush = ColorTokenToBrushConverter.TokenToForegroundBrush(token);
     }
 
     public string Level { get; }

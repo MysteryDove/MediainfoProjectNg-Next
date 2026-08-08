@@ -26,7 +26,7 @@ public enum ColorToken
     /// <summary>Legacy Brushes.GreenYellow — multi-audio info.</summary>
     InfoGreenYellow,
 
-    /// <summary>Legacy Brushes.Blue — TextCount &gt; 1 row foreground.</summary>
+    /// <summary>TextCount &gt; 1 row foreground, rendered as a readable teal hint.</summary>
     ForegroundMultiSub,
 
     /// <summary>Legacy Brushes.DarkViolet — VFR.</summary>

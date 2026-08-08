@@ -73,15 +73,36 @@ public class MainWindowLayoutTests
     }
 
     [Fact]
-    public void FileGrid_UsesTrackRows_AndSuppressesCellSelectionBackground()
+    public void FileGrid_UsesTrackRows_AndOnlyRowSelectionStyling()
     {
-        var axaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+        var root = FindRepoRoot();
+        var axaml = File.ReadAllText(Path.Combine(root, "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+        var app = File.ReadAllText(Path.Combine(root, "src", "MediainfoProjectNg.Next", "App.axaml"));
 
-        Assert.Contains("Selector=\"DataGridCell:selected\"", axaml, StringComparison.Ordinal);
-        Assert.Contains("Property=\"Background\" Value=\"Transparent\"", axaml, StringComparison.Ordinal);
-        Assert.Contains("Header=\"音轨\" Binding=\"{Binding AudioFormat}\"", axaml, StringComparison.Ordinal);
-        Assert.Contains("Header=\"字幕\" Binding=\"{Binding SubtitleFormat}\"", axaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Header=\"#2音轨\"", axaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"DataGridCell:selected\"", axaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"DataGridCell:selected\"", app, StringComparison.Ordinal);
+        Assert.Contains("Selector=\"DataGridRow:selected DataGridCell\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Header=\"音轨序号\" Binding=\"{Binding AudioTrackLabel}\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Header=\"字幕序号\" Binding=\"{Binding SubtitleTrackLabel}\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Header=\"格式\" Binding=\"{Binding AudioFormat}\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Header=\"格式\" Binding=\"{Binding SubtitleFormat}\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Binding DisplayFilename", axaml, StringComparison.Ordinal);
+        Assert.Contains("Binding DisplayFullPath", axaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ClearButton_IsInTopToolbar_AndRightPanelHasNoReservedClearRow()
+    {
+        var doc = LoadDocument();
+        var clear = doc.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "ClearButton"));
+        var rightPanel = doc.Descendants()
+            .Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "RightPanel"));
+
+        Assert.Equal("清空", (string?)clear.Attribute("Content"));
+        Assert.DoesNotContain(clear, rightPanel.Descendants());
+        Assert.Equal("*", (string?)rightPanel.Attribute("RowDefinitions"));
+        Assert.DoesNotContain("Clear!", doc.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -55,6 +55,10 @@
                 <Button Content="打开文件夹"
                         Click="OpenFolderButton_OnClick"
                         MinHeight="24" />
+                <Button x:Name="ClearButton"
+                        Content="清空"
+                        Command="{Binding ClearCommand}"
+                        MinHeight="24" />
             </StackPanel>
         </Border>
 
@@ -194,25 +198,24 @@
                             <Setter Property="ToolTip.Tip" Value="{Binding TooltipText}" />
                             <Setter Property="ToolTip.ShowDelay" Value="600" />
                         </Style>
-                        <Style Selector="DataGridCell">
+                        <Style Selector="DataGridCell" x:DataType="vm:MediaFileRowViewModel">
                             <Setter Property="BorderThickness" Value="0" />
                             <Setter Property="FontSize" Value="12" />
                             <Setter Property="MinHeight" Value="0" />
                             <Setter Property="Padding" Value="0" />
-                        </Style>
-                        <Style Selector="DataGridCell:selected">
-                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Foreground" Value="{Binding RowForegroundBrush}" />
                         </Style>
                         <Style Selector="DataGridCell TextBlock">
                             <Setter Property="Margin" Value="4,0" />
                         </Style>
                         <Style Selector="DataGridRow:selected DataGridCell">
+                            <Setter Property="Background" Value="Transparent" />
                             <Setter Property="Foreground" Value="{DynamicResource Wpf.HighlightTextBrush}" />
                         </Style>
                     </DataGrid.Styles>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="文件名" Binding="{Binding Filename}" CanUserSort="True" />
-                        <DataGridTextColumn Header="容器" Binding="{Binding Container}" CanUserSort="True" />
+                        <DataGridTextColumn Header="文件名" Binding="{Binding DisplayFilename}" SortMemberPath="Filename" CanUserSort="True" />
+                        <DataGridTextColumn Header="容器" Binding="{Binding DisplayContainer}" SortMemberPath="Container" CanUserSort="True" />
                         <DataGridTextColumn Header="编码" Binding="{Binding VideoFormat}" CanUserSort="True" />
                         <DataGridTextColumn Header="分辨率" Binding="{Binding Resolution}" CanUserSort="True" />
                         <DataGridTextColumn Header="位深" Binding="{Binding VideoBitDepth}" CanUserSort="True" />
@@ -252,12 +255,14 @@
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="语言" Binding="{Binding VideoLanguage}" CanUserSort="True" />
                         <DataGridTextColumn Header="默认" Binding="{Binding VideoDefault}" CanUserSort="True" />
-                        <DataGridTextColumn Header="音轨" Binding="{Binding AudioFormat}" CanUserSort="True" />
+                        <DataGridTextColumn Header="音轨序号" Binding="{Binding AudioTrackLabel}" CanUserSort="True" />
+                        <DataGridTextColumn Header="格式" Binding="{Binding AudioFormat}" CanUserSort="True" />
                         <DataGridTextColumn Header="位深" Binding="{Binding AudioBitDepth}" CanUserSort="True" />
                         <DataGridTextColumn Header="码率" Binding="{Binding AudioBitrate}" CanUserSort="True" />
                         <DataGridTextColumn Header="语言" Binding="{Binding AudioLanguage}" CanUserSort="True" />
                         <DataGridTextColumn Header="默认" Binding="{Binding AudioDefault}" CanUserSort="True" />
-                        <DataGridTextColumn Header="字幕" Binding="{Binding SubtitleFormat}" CanUserSort="True" />
+                        <DataGridTextColumn Header="字幕序号" Binding="{Binding SubtitleTrackLabel}" CanUserSort="True" />
+                        <DataGridTextColumn Header="格式" Binding="{Binding SubtitleFormat}" CanUserSort="True" />
                         <DataGridTextColumn Header="语言" Binding="{Binding SubtitleLanguage}" CanUserSort="True" />
                         <DataGridTextColumn Header="默认" Binding="{Binding SubtitleDefault}" CanUserSort="True" />
                         <DataGridTextColumn Header="章节" Binding="{Binding ChapterState}" CanUserSort="True" />
@@ -274,13 +279,21 @@
                                             </MultiBinding>
                                     </Border.Background>
                                     <TextBlock Text="{Binding ChapterLanguage}"
-                                               Foreground="{Binding ChapterLanguageForegroundBrush}"
-                                               VerticalAlignment="Center" />
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Foreground>
+                                            <MultiBinding Converter="{StaticResource SelectionAwareBrush}"
+                                                          ConverterParameter="Foreground">
+                                                <Binding Path="ChapterLanguageForegroundBrush" />
+                                                <Binding Path="IsSelected"
+                                                         RelativeSource="{RelativeSource AncestorType=DataGridRow}" />
+                                            </MultiBinding>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
                                     </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="完整路径" Binding="{Binding FullPath}" CanUserSort="True" />
+                        <DataGridTextColumn Header="完整路径" Binding="{Binding DisplayFullPath}" SortMemberPath="FullPath" CanUserSort="True" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
@@ -292,20 +305,13 @@
                           HorizontalAlignment="Stretch"
                           Background="{DynamicResource Wpf.ChromeBorderBrush}" />
 
-            <!-- Right panel: Clear! + findings (45% cap) + MediaInfo, separate scroll regions -->
+            <!-- Right panel: findings (45% cap) + MediaInfo, separate scroll regions -->
             <Grid x:Name="RightPanel"
                   Grid.Column="2"
                   Background="{DynamicResource Wpf.ControlBrush}"
-                  RowDefinitions="25,*">
-                <Button x:Name="ClearButton"
-                        Grid.Row="0"
-                        Content="Clear!"
-                        Command="{Binding ClearCommand}"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Margin="2" />
+                  RowDefinitions="*">
                 <Grid x:Name="RightContentHost"
-                      Grid.Row="1"
+                      Grid.Row="0"
                       Margin="2"
                       SizeChanged="RightContentHost_OnSizeChanged"
                       RowDefinitions="Auto,*">

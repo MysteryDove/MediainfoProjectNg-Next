@@ -25,6 +25,7 @@ public class MainWindowViewModelTests
             info.VideoInfos.Add(new VideoInfo(
                 "HEVC", "Main 10@L4", "CFR", "23.976", 1000, 10, 10000, 1080, 1920,
                 "UND", 0, new ProfileInfo("Main 10@L4"), "YUV420", "Yes"));
+            info.Summary = $"summary:{path}";
             info.AudioInfos.Add(new AudioInfo("FLAC", 16, 1000, 10000, "JPN", 0, "Yes"));
             if (!chapterFile)
             {
@@ -81,18 +82,135 @@ public class MainWindowViewModelTests
     [Fact]
     public void TrackRows_ExposeOneAudioAndSubtitlePerRow()
     {
-        var info = new MediaFileInfo(new GeneralInfo("multi", "/multi.mkv", "Matroska", 0, 1, 2, 3, 0));
+        var info = new MediaFileInfo(new GeneralInfo("multi", "/multi.mkv", "Matroska", 0, 1, 2, 3, 1));
+        info.VideoInfos.Add(new VideoInfo(
+            "HEVC", "Main 10", "CFR", "23.976 (24000/1001)", 1000, 10, 1,
+            1080, 1920, "JPN", 0, new ProfileInfo("Main 10"), "YUV420", "Yes"));
         info.AudioInfos.Add(new AudioInfo("FLAC", 24, 1000, 1, "JPN", 0, "Yes"));
         info.AudioInfos.Add(new AudioInfo("AAC", 16, 192, 1, "ENG", 0, "No"));
         info.SubInfos.Add(new SubInfo("ASS", "Yes", "JPN"));
         info.SubInfos.Add(new SubInfo("PGS", "No", "ENG"));
         info.SubInfos.Add(new SubInfo("SRT", "No", "CHI"));
+        info.ChapterInfos.Add(new ChapterInfo(0, "Chapter 1", "JPN"));
 
         var rows = MediaFileRowViewModel.CreateRows(info);
 
         Assert.Equal(3, rows.Count);
-        Assert.Equal(("FLAC", "ASS"), (rows[0].AudioFormat, rows[0].SubtitleFormat));
-        Assert.Equal(("AAC", "PGS"), (rows[1].AudioFormat, rows[1].SubtitleFormat));
-        Assert.Equal((string.Empty, "SRT"), (rows[2].AudioFormat, rows[2].SubtitleFormat));
+        Assert.Equal(("#1", "FLAC", "#1", "ASS"),
+            (rows[0].AudioTrackLabel, rows[0].AudioFormat, rows[0].SubtitleTrackLabel, rows[0].SubtitleFormat));
+        Assert.Equal(("#2", "AAC", "#2", "PGS"),
+            (rows[1].AudioTrackLabel, rows[1].AudioFormat, rows[1].SubtitleTrackLabel, rows[1].SubtitleFormat));
+        Assert.Equal((string.Empty, string.Empty, "#3", "SRT"),
+            (rows[2].AudioTrackLabel, rows[2].AudioFormat, rows[2].SubtitleTrackLabel, rows[2].SubtitleFormat));
+
+        Assert.False(rows[0].IsContinuation);
+        Assert.Equal(("multi", "Matroska", "/multi.mkv", "HEVC", "有"),
+            (rows[0].DisplayFilename, rows[0].DisplayContainer, rows[0].DisplayFullPath,
+                rows[0].VideoFormat, rows[0].ChapterState));
+        Assert.All(rows.Skip(1), row =>
+        {
+            Assert.True(row.IsContinuation);
+            Assert.Equal((string.Empty, string.Empty, string.Empty, string.Empty, string.Empty),
+                (row.DisplayFilename, row.DisplayContainer, row.DisplayFullPath,
+                    row.VideoFormat, row.ChapterState));
+            Assert.Equal("/multi.mkv", row.FullPath);
+            Assert.Same(info, row.Model);
+        });
     }
+
+    [Theory]
+    [InlineData("Show [Menu01]")]
+    [InlineData("Show [menu01_2]")]
+    public void Menu_WithMultiplePgs_CollapsesToOneAggregateRow(string filename)
+    {
+        var info = CreateMenuInfo(filename);
+        info.AudioInfos.Add(new AudioInfo("FLAC", 24, 1000, 1, "JPN", 0, "Yes"));
+        info.AudioInfos.Add(new AudioInfo("FLAC", 24, 1000, 1, "JPN", 0, "Yes"));
+        info.SubInfos.Add(new SubInfo("PGS", "No", "JPN"));
+        info.SubInfos.Add(new SubInfo("HDMV PGS", "No", "JPN"));
+
+        var row = Assert.Single(MediaFileRowViewModel.CreateRows(info));
+
+        Assert.True(row.IsMenuPgsAggregate);
+        Assert.False(row.IsContinuation);
+        Assert.Equal(("#1-#2", "FLAC", "24", "1000", "JPN", "Yes"),
+            (row.AudioTrackLabel, row.AudioFormat, row.AudioBitDepth, row.AudioBitrate,
+                row.AudioLanguage, row.AudioDefault));
+        Assert.Equal(("#1-#2", "多种", "JPN", "No"),
+            (row.SubtitleTrackLabel, row.SubtitleFormat, row.SubtitleLanguage, row.SubtitleDefault));
+        Assert.Equal(ColorToken.WarningDelayTeal, row.RowBackgroundToken);
+        Assert.Contains("多字幕轨道提示", row.TooltipText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Menu_Aggregate_UsesMixedValues_AndExistingFindingHasColorPriority()
+    {
+        var info = CreateMenuInfo("Show [Menu02]");
+        info.AudioInfos.Add(new AudioInfo("FLAC", 16, 1000, 1, "JPN", 0, "Yes"));
+        info.AudioInfos.Add(new AudioInfo("AAC", 24, 192, 1, "ENG", 0, "No"));
+        info.SubInfos.Add(new SubInfo("PGS", "No", "JPN"));
+        info.SubInfos.Add(new SubInfo("PGS", "Yes", "ENG"));
+        info.SetFindings([new ValidationFinding(ErrorLevel.Error, "extension mismatch")]);
+
+        var row = Assert.Single(MediaFileRowViewModel.CreateRows(info));
+
+        Assert.Equal(("多种", "多种", "多种", "多种", "多种"),
+            (row.AudioFormat, row.AudioBitDepth, row.AudioBitrate, row.AudioLanguage, row.AudioDefault));
+        Assert.Equal(("PGS", "多种", "多种"),
+            (row.SubtitleFormat, row.SubtitleLanguage, row.SubtitleDefault));
+        Assert.Equal(ColorToken.ErrorRed, row.RowBackgroundToken);
+    }
+
+    [Theory]
+    [InlineData("Show", 2)]
+    [InlineData("Show [Menu01]", 1)]
+    public void MenuAggregation_RequiresBothTagAndMultiplePgs(string filename, int pgsCount)
+    {
+        var info = CreateMenuInfo(filename);
+        for (var index = 0; index < pgsCount; index++)
+        {
+            info.SubInfos.Add(new SubInfo("PGS", "No", "JPN"));
+        }
+
+        var rows = MediaFileRowViewModel.CreateRows(info);
+
+        Assert.Equal(Math.Max(1, pgsCount), rows.Count);
+        Assert.All(rows, row => Assert.False(row.IsMenuPgsAggregate));
+    }
+
+    [Fact]
+    public async Task ContinuationSelection_RetainsDetailsAndDeletingItRemovesWholeFile()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "mpng-next-continuation-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "track.mkv");
+            await File.WriteAllBytesAsync(path, [0]);
+            var reader = new FakeReader();
+            var vm = new MainWindowViewModel(new MediaLoadService(reader), reader);
+
+            await vm.LoadPathsAsync([path]);
+            var continuation = vm.Files.Single(row => row.TrackIndex == 1);
+            vm.SelectedFile = continuation;
+
+            Assert.Equal(path, continuation.FullPath);
+            Assert.Equal(string.Empty, continuation.DisplayFullPath);
+            Assert.Same(continuation.Model, vm.SelectedFile.Model);
+            Assert.Equal($"summary:{path}", vm.SelectedSummary);
+
+            vm.RemoveRows([continuation]);
+
+            Assert.Empty(vm.Files);
+            Assert.Equal(0, vm.CanonicalCount);
+            Assert.Null(vm.SelectedFile);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    private static MediaFileInfo CreateMenuInfo(string filename) =>
+        new(new GeneralInfo(filename, $"/{filename}.mkv", "Matroska", 0, 0, 0, 2, 0));
 }

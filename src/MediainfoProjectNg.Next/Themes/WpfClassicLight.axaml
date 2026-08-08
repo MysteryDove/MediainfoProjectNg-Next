@@ -11,7 +11,7 @@
             <SolidColorBrush x:Key="Wpf.ChromeBorderBrush" Color="#FFCCCEDB" />
             <SolidColorBrush x:Key="Wpf.DataGridHeaderBrush" Color="#FFF0F0F0" />
             <SolidColorBrush x:Key="Wpf.DataGridRowDefaultBrush" Color="#FFFFFFFF" />
-            <SolidColorBrush x:Key="Wpf.HighlightBrush" Color="#FF3399FF" />
+            <SolidColorBrush x:Key="Wpf.HighlightBrush" Color="#FF005A9E" />
             <SolidColorBrush x:Key="Wpf.HighlightTextBrush" Color="#FFFFFFFF" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
@@ -26,20 +26,6 @@
             <SolidColorBrush x:Key="Wpf.DataGridRowDefaultBrush" Color="#FF202020" />
             <SolidColorBrush x:Key="Wpf.HighlightBrush" Color="#FF0A64AD" />
             <SolidColorBrush x:Key="Wpf.HighlightTextBrush" Color="#FFFFFFFF" />
-            <!-- Dark-readable validation signal hues (override Val.* for ActualThemeVariant.Dark) -->
-            <SolidColorBrush x:Key="Val.ErrorRed" Color="#FFFF6B6B" />
-            <SolidColorBrush x:Key="Val.ErrorViolet" Color="#FFE0A0FF" />
-            <SolidColorBrush x:Key="Val.WarningYellow" Color="#FFFFE066" />
-            <SolidColorBrush x:Key="Val.WarningPaleVioletRed" Color="#FFFF9ECF" />
-            <SolidColorBrush x:Key="Val.WarningDelayTeal" Color="#FF5EEAD4" />
-            <SolidColorBrush x:Key="Val.InfoGreenYellow" Color="#FFB8F26E" />
-            <SolidColorBrush x:Key="Val.ForegroundMultiSub" Color="#FF7EC8FF" />
-            <SolidColorBrush x:Key="Val.FpsVfr" Color="#FFD4A5FF" />
-            <SolidColorBrush x:Key="Val.FpsNtsc" Color="#FFE8D56A" />
-            <SolidColorBrush x:Key="Val.FpsRounded" Color="#FFB5A8FF" />
-            <SolidColorBrush x:Key="Val.FpsOther" Color="#FFFF8A8A" />
-            <SolidColorBrush x:Key="Val.ColorSpaceNon420" Color="#FFFFC078" />
-            <SolidColorBrush x:Key="Val.ForegroundDefault" Color="#FFF2F2F2" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

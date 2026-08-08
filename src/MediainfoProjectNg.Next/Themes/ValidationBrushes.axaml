@@ -1,26 +1,108 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!--
-      Legacy mpng brush ports. Used for both light and dark; dark theme may still be readable
-      for strong validation hues. Row "None" uses transparent so Fluent theme row bg shows through.
-    -->
-    <SolidColorBrush x:Key="Val.None" Color="Transparent" />
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="Val.ForegroundDefault" Color="#000000" />
 
-    <SolidColorBrush x:Key="Val.ErrorRed" Color="#FFFF0000" />
-    <SolidColorBrush x:Key="Val.ErrorViolet" Color="#FFEE82EE" />
-    <SolidColorBrush x:Key="Val.WarningYellow" Color="#FFFFFF00" />
-    <SolidColorBrush x:Key="Val.WarningPaleVioletRed" Color="#FFDB7093" />
-    <SolidColorBrush x:Key="Val.WarningDelayTeal" Color="#FF00A4AC" />
-    <SolidColorBrush x:Key="Val.InfoGreenYellow" Color="#FFADFF2F" />
+            <SolidColorBrush x:Key="Val.ErrorRed.Accent" Color="#B91C1C" />
+            <SolidColorBrush x:Key="Val.ErrorRed.Background" Color="#FEE2E2" />
+            <SolidColorBrush x:Key="Val.ErrorRed.Foreground" Color="#7F1D1D" />
 
-    <!-- Light-theme readable hues (legacy mpng ports) -->
-    <SolidColorBrush x:Key="Val.ForegroundMultiSub" Color="#FF4DA3FF" />
-    <SolidColorBrush x:Key="Val.FpsVfr" Color="#FFC77DFF" />
-    <SolidColorBrush x:Key="Val.FpsNtsc" Color="#FFD4C45A" />
-    <SolidColorBrush x:Key="Val.FpsRounded" Color="#FF9B8CFF" />
-    <SolidColorBrush x:Key="Val.FpsOther" Color="#FFFF6B6B" />
-    <SolidColorBrush x:Key="Val.ColorSpaceNon420" Color="#FFFFB347" />
+            <SolidColorBrush x:Key="Val.ErrorViolet.Accent" Color="#7E22CE" />
+            <SolidColorBrush x:Key="Val.ErrorViolet.Background" Color="#F3E8FF" />
+            <SolidColorBrush x:Key="Val.ErrorViolet.Foreground" Color="#581C87" />
 
-    <SolidColorBrush x:Key="Val.ForegroundDefault" Color="#FF000000" />
+            <SolidColorBrush x:Key="Val.WarningYellow.Accent" Color="#A16207" />
+            <SolidColorBrush x:Key="Val.WarningYellow.Background" Color="#FEF9C3" />
+            <SolidColorBrush x:Key="Val.WarningYellow.Foreground" Color="#713F12" />
+
+            <SolidColorBrush x:Key="Val.WarningPaleVioletRed.Accent" Color="#BE185D" />
+            <SolidColorBrush x:Key="Val.WarningPaleVioletRed.Background" Color="#FCE7F3" />
+            <SolidColorBrush x:Key="Val.WarningPaleVioletRed.Foreground" Color="#831843" />
+
+            <SolidColorBrush x:Key="Val.WarningDelayTeal.Accent" Color="#0F766E" />
+            <SolidColorBrush x:Key="Val.WarningDelayTeal.Background" Color="#CCFBF1" />
+            <SolidColorBrush x:Key="Val.WarningDelayTeal.Foreground" Color="#134E4A" />
+
+            <SolidColorBrush x:Key="Val.InfoGreenYellow.Accent" Color="#15803D" />
+            <SolidColorBrush x:Key="Val.InfoGreenYellow.Background" Color="#DCFCE7" />
+            <SolidColorBrush x:Key="Val.InfoGreenYellow.Foreground" Color="#14532D" />
+
+            <SolidColorBrush x:Key="Val.ForegroundMultiSub.Accent" Color="#115E59" />
+            <SolidColorBrush x:Key="Val.ForegroundMultiSub.Background" Color="Transparent" />
+            <SolidColorBrush x:Key="Val.ForegroundMultiSub.Foreground" Color="#115E59" />
+
+            <SolidColorBrush x:Key="Val.FpsVfr.Accent" Color="#7E22CE" />
+            <SolidColorBrush x:Key="Val.FpsVfr.Background" Color="#F3E8FF" />
+            <SolidColorBrush x:Key="Val.FpsVfr.Foreground" Color="#581C87" />
+
+            <SolidColorBrush x:Key="Val.FpsNtsc.Accent" Color="#1D4ED8" />
+            <SolidColorBrush x:Key="Val.FpsNtsc.Background" Color="#DBEAFE" />
+            <SolidColorBrush x:Key="Val.FpsNtsc.Foreground" Color="#1E3A8A" />
+
+            <SolidColorBrush x:Key="Val.FpsRounded.Accent" Color="#4338CA" />
+            <SolidColorBrush x:Key="Val.FpsRounded.Background" Color="#E0E7FF" />
+            <SolidColorBrush x:Key="Val.FpsRounded.Foreground" Color="#312E81" />
+
+            <SolidColorBrush x:Key="Val.FpsOther.Accent" Color="#991B1B" />
+            <SolidColorBrush x:Key="Val.FpsOther.Background" Color="#FEE2E2" />
+            <SolidColorBrush x:Key="Val.FpsOther.Foreground" Color="#7F1D1D" />
+
+            <SolidColorBrush x:Key="Val.ColorSpaceNon420.Accent" Color="#C2410C" />
+            <SolidColorBrush x:Key="Val.ColorSpaceNon420.Background" Color="#FFEDD5" />
+            <SolidColorBrush x:Key="Val.ColorSpaceNon420.Foreground" Color="#7C2D12" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="Val.ForegroundDefault" Color="#F2F2F2" />
+
+            <SolidColorBrush x:Key="Val.ErrorRed.Accent" Color="#FCA5A5" />
+            <SolidColorBrush x:Key="Val.ErrorRed.Background" Color="#450A0A" />
+            <SolidColorBrush x:Key="Val.ErrorRed.Foreground" Color="#FEE2E2" />
+
+            <SolidColorBrush x:Key="Val.ErrorViolet.Accent" Color="#D8B4FE" />
+            <SolidColorBrush x:Key="Val.ErrorViolet.Background" Color="#3B1D4A" />
+            <SolidColorBrush x:Key="Val.ErrorViolet.Foreground" Color="#F3E8FF" />
+
+            <SolidColorBrush x:Key="Val.WarningYellow.Accent" Color="#FDE047" />
+            <SolidColorBrush x:Key="Val.WarningYellow.Background" Color="#422006" />
+            <SolidColorBrush x:Key="Val.WarningYellow.Foreground" Color="#FEF9C3" />
+
+            <SolidColorBrush x:Key="Val.WarningPaleVioletRed.Accent" Color="#F9A8D4" />
+            <SolidColorBrush x:Key="Val.WarningPaleVioletRed.Background" Color="#500724" />
+            <SolidColorBrush x:Key="Val.WarningPaleVioletRed.Foreground" Color="#FCE7F3" />
+
+            <SolidColorBrush x:Key="Val.WarningDelayTeal.Accent" Color="#5EEAD4" />
+            <SolidColorBrush x:Key="Val.WarningDelayTeal.Background" Color="#103B38" />
+            <SolidColorBrush x:Key="Val.WarningDelayTeal.Foreground" Color="#CCFBF1" />
+
+            <SolidColorBrush x:Key="Val.InfoGreenYellow.Accent" Color="#86EFAC" />
+            <SolidColorBrush x:Key="Val.InfoGreenYellow.Background" Color="#052E16" />
+            <SolidColorBrush x:Key="Val.InfoGreenYellow.Foreground" Color="#DCFCE7" />
+
+            <SolidColorBrush x:Key="Val.ForegroundMultiSub.Accent" Color="#5EEAD4" />
+            <SolidColorBrush x:Key="Val.ForegroundMultiSub.Background" Color="Transparent" />
+            <SolidColorBrush x:Key="Val.ForegroundMultiSub.Foreground" Color="#5EEAD4" />
+
+            <SolidColorBrush x:Key="Val.FpsVfr.Accent" Color="#D8B4FE" />
+            <SolidColorBrush x:Key="Val.FpsVfr.Background" Color="#3B1D4A" />
+            <SolidColorBrush x:Key="Val.FpsVfr.Foreground" Color="#F3E8FF" />
+
+            <SolidColorBrush x:Key="Val.FpsNtsc.Accent" Color="#93C5FD" />
+            <SolidColorBrush x:Key="Val.FpsNtsc.Background" Color="#172554" />
+            <SolidColorBrush x:Key="Val.FpsNtsc.Foreground" Color="#DBEAFE" />
+
+            <SolidColorBrush x:Key="Val.FpsRounded.Accent" Color="#A5B4FC" />
+            <SolidColorBrush x:Key="Val.FpsRounded.Background" Color="#1E1B4B" />
+            <SolidColorBrush x:Key="Val.FpsRounded.Foreground" Color="#E0E7FF" />
+
+            <SolidColorBrush x:Key="Val.FpsOther.Accent" Color="#FCA5A5" />
+            <SolidColorBrush x:Key="Val.FpsOther.Background" Color="#450A0A" />
+            <SolidColorBrush x:Key="Val.FpsOther.Foreground" Color="#FEE2E2" />
+
+            <SolidColorBrush x:Key="Val.ColorSpaceNon420.Accent" Color="#FDBA74" />
+            <SolidColorBrush x:Key="Val.ColorSpaceNon420.Background" Color="#431407" />
+            <SolidColorBrush x:Key="Val.ColorSpaceNon420.Foreground" Color="#FFEDD5" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>
-

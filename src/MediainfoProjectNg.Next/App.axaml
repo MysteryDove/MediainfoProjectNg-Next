@@ -60,10 +60,6 @@
         <Style Selector="DataGridRow:selected">
             <Setter Property="Foreground" Value="{DynamicResource Wpf.HighlightTextBrush}" />
         </Style>
-        <Style Selector="DataGridCell:selected">
-            <Setter Property="Background" Value="{DynamicResource Wpf.HighlightBrush}" />
-            <Setter Property="Foreground" Value="{DynamicResource Wpf.HighlightTextBrush}" />
-        </Style>
         <Style Selector="DataGridColumnHeader">
             <Setter Property="Background" Value="{DynamicResource Wpf.DataGridHeaderBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource Wpf.WindowTextBrush}" />

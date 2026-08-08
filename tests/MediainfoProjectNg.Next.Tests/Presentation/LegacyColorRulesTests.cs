@@ -78,7 +78,7 @@ public class LegacyColorRulesTests
     }
 
     [Fact]
-    public void MultiSub_Foreground_IsBlue()
+    public void MultiSub_UsesDedicatedForegroundToken()
     {
         Assert.Equal(ColorToken.ForegroundMultiSub, LegacyColorRules.RowForegroundToken(2));
         Assert.Equal(ColorToken.None, LegacyColorRules.RowForegroundToken(1));

@@ -55,13 +55,14 @@ public class MainWindowViewModelTests
             await vm.LoadPathsAsync([track, directory]);
 
             Assert.Equal(2, vm.CanonicalCount);
-            Assert.Equal(2, vm.Files.Count);
+            Assert.Equal(4, vm.Files.Count);
+            Assert.Equal("列表中共有 2 个文件", vm.FileCountText);
             var trackToggle = vm.CategoryToggles.Single(t => t.Category == IssueCategory.Track);
             var chapterToggle = vm.CategoryToggles.Single(t => t.Category == IssueCategory.Chapter);
             Assert.Equal("轨道 (1)", trackToggle.ButtonText);
             Assert.Equal("章节 (1)", chapterToggle.ButtonText);
 
-            vm.SelectedFile = vm.Files.Single(row => row.FullPath == track);
+            vm.SelectedFile = vm.Files.First(row => row.FullPath == track);
             vm.ToggleCategoryCommand.Execute(chapterToggle);
 
             Assert.Null(vm.SelectedFile);
@@ -69,11 +70,29 @@ public class MainWindowViewModelTests
             Assert.Equal(chapter, vm.Files[0].FullPath);
 
             vm.ClearCategoryFiltersCommand.Execute(null);
-            Assert.Equal(2, vm.Files.Count);
+            Assert.Equal(4, vm.Files.Count);
         }
         finally
         {
             Directory.Delete(directory, true);
         }
+    }
+
+    [Fact]
+    public void TrackRows_ExposeOneAudioAndSubtitlePerRow()
+    {
+        var info = new MediaFileInfo(new GeneralInfo("multi", "/multi.mkv", "Matroska", 0, 1, 2, 3, 0));
+        info.AudioInfos.Add(new AudioInfo("FLAC", 24, 1000, 1, "JPN", 0, "Yes"));
+        info.AudioInfos.Add(new AudioInfo("AAC", 16, 192, 1, "ENG", 0, "No"));
+        info.SubInfos.Add(new SubInfo("ASS", "Yes", "JPN"));
+        info.SubInfos.Add(new SubInfo("PGS", "No", "ENG"));
+        info.SubInfos.Add(new SubInfo("SRT", "No", "CHI"));
+
+        var rows = MediaFileRowViewModel.CreateRows(info);
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(("FLAC", "ASS"), (rows[0].AudioFormat, rows[0].SubtitleFormat));
+        Assert.Equal(("AAC", "PGS"), (rows[1].AudioFormat, rows[1].SubtitleFormat));
+        Assert.Equal((string.Empty, "SRT"), (rows[2].AudioFormat, rows[2].SubtitleFormat));
     }
 }

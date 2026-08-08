@@ -6,6 +6,21 @@ namespace MediainfoProjectNg.Next.Tests.Presentation;
 
 public class LegacyColorRulesTests
 {
+    [Fact]
+    public void StructuredFindings_UseFilterCategoryColors()
+    {
+        Assert.Equal(
+            ColorToken.WarningDelayTeal,
+            LegacyColorRules.TokenForFinding(new ValidationFinding(
+                ErrorLevel.Warning, "track", CollationRuleIds.TrackVideoLanguage,
+                RuleOutcome.Violation, CollationPolicyMatrix.PolicyRevision)));
+        Assert.Equal(
+            ColorToken.ColorSpaceNon420,
+            LegacyColorRules.TokenForFinding(new ValidationFinding(
+                ErrorLevel.Warning, "video", CollationRuleIds.VideoColorRange,
+                RuleOutcome.Violation, CollationPolicyMatrix.PolicyRevision)));
+    }
+
     private static MediaFileInfo BaseInfo(string path = "/a.mkv", string format = "Matroska")
     {
         var info = new MediaFileInfo(new GeneralInfo("a", path, format, 0, 1, 1, 0, 0));

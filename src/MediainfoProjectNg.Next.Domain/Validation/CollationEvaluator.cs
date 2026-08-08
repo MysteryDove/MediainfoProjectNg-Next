@@ -342,13 +342,8 @@ public static class CollationEvaluator
             var langRaw = raw.VideoTracks[0].Language;
             if (langRaw.IsAbsent || langRaw.IsPresentEmpty)
             {
-                results.Add(Unverifiable(
-                    CollationRuleIds.TrackVideoLanguage,
-                    ErrorLevel.Warning,
-                    "主视频轨道语言字段缺失。",
-                    expected: "UND",
-                    actual: "(absent)",
-                    evidence: "raw Video Language"));
+                // Matroska video tracks normally omit Language; MediaInfo projects that as UND.
+                results.Add(Pass(CollationRuleIds.TrackVideoLanguage, "主视频未设置语言，按 UND 处理。"));
             }
             else
             {
@@ -549,9 +544,9 @@ public static class CollationEvaluator
     {
         if (RawUnavailable(info))
         {
+            results.Add(Na(CollationRuleIds.VideoScanType, "ScanType 不检查。"));
             foreach (var ruleId in new[]
                      {
-                         CollationRuleIds.VideoScanType,
                          CollationRuleIds.VideoColorRange,
                          CollationRuleIds.VideoColorMatrix,
                          CollationRuleIds.VideoColorReview,
@@ -572,7 +567,7 @@ public static class CollationEvaluator
         var raw = info.RawSnapshot!;
         if (raw.VideoTracks.Count == 0)
         {
-            results.Add(Na(CollationRuleIds.VideoScanType, "无视频轨道。"));
+            results.Add(Na(CollationRuleIds.VideoScanType, "ScanType 不检查。"));
             results.Add(Na(CollationRuleIds.VideoColorRange, "无视频轨道。"));
             results.Add(Na(CollationRuleIds.VideoColorMatrix, "无视频轨道。"));
             results.Add(Na(CollationRuleIds.VideoColorReview, "无视频轨道。"));
@@ -581,46 +576,8 @@ public static class CollationEvaluator
 
         var video = raw.VideoTracks[0];
 
-        // Scan type from raw only (FPS denominator-1000 remains presentation signal, not this rule)
-        if (video.ScanType.IsAbsent || video.ScanType.IsPresentEmpty)
-        {
-            results.Add(Unverifiable(
-                CollationRuleIds.VideoScanType,
-                ErrorLevel.Info,
-                "ScanType 字段缺失，无法验证是否为 progressive。",
-                expected: "Progressive",
-                actual: "(absent)",
-                evidence: "raw ScanType"));
-        }
-        else
-        {
-            var scan = video.ScanType.TextOrEmpty;
-            if (scan.Contains("Interlaced", StringComparison.OrdinalIgnoreCase)
-                || scan.Contains("MBAFF", StringComparison.OrdinalIgnoreCase))
-            {
-                results.Add(Violation(
-                    CollationRuleIds.VideoScanType,
-                    ErrorLevel.Warning,
-                    $"扫描类型非 progressive：{scan}。",
-                    expected: "Progressive",
-                    actual: scan,
-                    evidence: "raw ScanType"));
-            }
-            else if (scan.Contains("Progressive", StringComparison.OrdinalIgnoreCase))
-            {
-                results.Add(Pass(CollationRuleIds.VideoScanType, "Progressive 扫描。"));
-            }
-            else
-            {
-                results.Add(Unverifiable(
-                    CollationRuleIds.VideoScanType,
-                    ErrorLevel.Info,
-                    $"无法解释 ScanType 值：{scan}。",
-                    expected: "Progressive",
-                    actual: scan,
-                    evidence: "raw ScanType"));
-            }
-        }
+        // ScanType cannot be authored reliably in the target workflow, so it is informationally disabled.
+        results.Add(Na(CollationRuleIds.VideoScanType, "ScanType 不检查。"));
 
         var range = video.ColourRange;
         if (range.IsAbsent || range.IsPresentEmpty)

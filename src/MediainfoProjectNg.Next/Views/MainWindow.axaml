@@ -200,6 +200,9 @@
                             <Setter Property="MinHeight" Value="0" />
                             <Setter Property="Padding" Value="0" />
                         </Style>
+                        <Style Selector="DataGridCell:selected">
+                            <Setter Property="Background" Value="Transparent" />
+                        </Style>
                         <Style Selector="DataGridCell TextBlock">
                             <Setter Property="Margin" Value="4,0" />
                         </Style>
@@ -249,19 +252,14 @@
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="语言" Binding="{Binding VideoLanguage}" CanUserSort="True" />
                         <DataGridTextColumn Header="默认" Binding="{Binding VideoDefault}" CanUserSort="True" />
-                        <DataGridTextColumn Header="#1音轨" Binding="{Binding Audio1Format}" CanUserSort="True" />
-                        <DataGridTextColumn Header="位深" Binding="{Binding Audio1BitDepth}" CanUserSort="True" />
-                        <DataGridTextColumn Header="码率" Binding="{Binding Audio1Bitrate}" CanUserSort="True" />
-                        <DataGridTextColumn Header="语言" Binding="{Binding Audio1Language}" CanUserSort="True" />
-                        <DataGridTextColumn Header="默认" Binding="{Binding Audio1Default}" CanUserSort="True" />
-                        <DataGridTextColumn Header="#2音轨" Binding="{Binding Audio2Format}" CanUserSort="True" />
-                        <DataGridTextColumn Header="位深" Binding="{Binding Audio2BitDepth}" CanUserSort="True" />
-                        <DataGridTextColumn Header="码率" Binding="{Binding Audio2Bitrate}" CanUserSort="True" />
-                        <DataGridTextColumn Header="语言" Binding="{Binding Audio2Language}" CanUserSort="True" />
-                        <DataGridTextColumn Header="默认" Binding="{Binding Audio2Default}" CanUserSort="True" />
-                        <DataGridTextColumn Header="#1字幕" Binding="{Binding Sub1Format}" CanUserSort="True" />
-                        <DataGridTextColumn Header="语言" Binding="{Binding Sub1Language}" CanUserSort="True" />
-                        <DataGridTextColumn Header="默认" Binding="{Binding Sub1Default}" CanUserSort="True" />
+                        <DataGridTextColumn Header="音轨" Binding="{Binding AudioFormat}" CanUserSort="True" />
+                        <DataGridTextColumn Header="位深" Binding="{Binding AudioBitDepth}" CanUserSort="True" />
+                        <DataGridTextColumn Header="码率" Binding="{Binding AudioBitrate}" CanUserSort="True" />
+                        <DataGridTextColumn Header="语言" Binding="{Binding AudioLanguage}" CanUserSort="True" />
+                        <DataGridTextColumn Header="默认" Binding="{Binding AudioDefault}" CanUserSort="True" />
+                        <DataGridTextColumn Header="字幕" Binding="{Binding SubtitleFormat}" CanUserSort="True" />
+                        <DataGridTextColumn Header="语言" Binding="{Binding SubtitleLanguage}" CanUserSort="True" />
+                        <DataGridTextColumn Header="默认" Binding="{Binding SubtitleDefault}" CanUserSort="True" />
                         <DataGridTextColumn Header="章节" Binding="{Binding ChapterState}" CanUserSort="True" />
                         <DataGridTemplateColumn Header="语言" SortMemberPath="ChapterLanguage" CanUserSort="True">
                             <DataGridTemplateColumn.CellTemplate>

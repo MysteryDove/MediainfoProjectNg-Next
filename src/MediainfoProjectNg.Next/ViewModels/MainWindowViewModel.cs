@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediainfoProjectNg.Next.Core.Abstractions;
@@ -20,8 +19,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _loadService = loadService;
         _metadataReader = metadataReader;
-        Files.CollectionChanged += OnFilesCollectionChanged;
-
         CategoryToggles = IssueCategoryRegistry.FilterableCategories
             .Select(c => new CategoryToggleViewModel(
                 c,
@@ -74,7 +71,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public string? MediaInfoUnavailableMessage { get; private set; }
 
     /// <summary>Exposed for tests: canonical loaded set size.</summary>
-    public int CanonicalCount => _canonicalFiles.Count;
+    public int CanonicalCount => _canonicalFiles
+        .Select(row => row.FullPath)
+        .Distinct(PathComparer)
+        .Count();
 
     private void ApplyMediaInfoVersionToTitle()
     {
@@ -159,14 +159,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void RemoveRows(IEnumerable<MediaFileRowViewModel> rows)
     {
-        foreach (var row in rows.ToList())
-        {
-            _canonicalFiles.Remove(row);
-            Files.Remove(row);
-        }
+        var paths = rows.Select(row => row.FullPath).ToHashSet(PathComparer);
+        _canonicalFiles.RemoveAll(row => paths.Contains(row.FullPath));
 
         RefreshCategoryCounts();
-        if (SelectedFile is not null && !_canonicalFiles.Contains(SelectedFile))
+        if (SelectedFile is not null && paths.Contains(SelectedFile.FullPath))
         {
             SelectedFile = null;
             OnPropertyChanged(nameof(SelectedSummary));
@@ -210,11 +207,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            var pathComparer = OperatingSystem.IsWindows()
-                ? StringComparer.OrdinalIgnoreCase
-                : StringComparer.Ordinal;
-            var distinctPaths = paths.Distinct(pathComparer).ToArray();
-            var existing = _canonicalFiles.Select(f => f.FullPath).ToHashSet(pathComparer);
+            var distinctPaths = paths.Distinct(PathComparer).ToArray();
+            var existing = _canonicalFiles.Select(f => f.FullPath).ToHashSet(PathComparer);
             // Progress<T> captures the current SynchronizationContext (UI) at construction.
             var progress = new Progress<string>(path =>
             {
@@ -241,8 +235,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     continue;
                 }
 
-                var row = new MediaFileRowViewModel(info);
-                _canonicalFiles.Add(row);
+                _canonicalFiles.AddRange(MediaFileRowViewModel.CreateRows(info));
             }
 
             RebuildVisible(clearSelection: false);
@@ -294,6 +287,9 @@ public partial class MainWindowViewModel : ViewModelBase
             Files.Add(row);
         }
 
+        var fileCount = filtered.Select(row => row.FullPath).Distinct(PathComparer).Count();
+        FileCountText = $"列表中共有 {fileCount} 个文件";
+
         if (!clearSelection && previousPrimary is not null && visible.Contains(previousPrimary))
         {
             var (primary, _) = SelectionReconciler.Reconcile(
@@ -311,7 +307,10 @@ public partial class MainWindowViewModel : ViewModelBase
     private void RefreshCategoryCounts()
     {
         var counts = CategoryFilterEngine.ComputeDistinctFileCounts(
-            _canonicalFiles.Select(r => r.IssueItems).ToList());
+            _canonicalFiles
+                .GroupBy(row => row.FullPath, PathComparer)
+                .Select(group => group.First().IssueItems)
+                .ToList());
 
         foreach (var toggle in CategoryToggles)
         {
@@ -325,11 +324,6 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void OnFilesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        FileCountText = $"列表中共有 {Files.Count} 个文件";
-    }
-
     private static ColorToken CategorySwatchToken(IssueCategory category) => category switch
     {
         IssueCategory.ContainerNaming => ColorToken.ErrorViolet,
@@ -339,4 +333,8 @@ public partial class MainWindowViewModel : ViewModelBase
         IssueCategory.Chapter => ColorToken.WarningYellow,
         _ => ColorToken.None,
     };
+
+    private static StringComparer PathComparer => OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 }

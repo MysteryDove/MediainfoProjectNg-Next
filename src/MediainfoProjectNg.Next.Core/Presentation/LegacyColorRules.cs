@@ -23,12 +23,19 @@ public static class LegacyColorRules
 
     public static ColorToken TokenForFinding(ValidationFinding finding)
     {
-        // Prefer structured rule identity for Collation filename errors.
-        if (finding.RuleId is not null
-            && CollationRuleIds.FilenameRuleOrder.Contains(finding.RuleId)
-            && finding.Level == ErrorLevel.Error)
+        // Structured findings use the same category colors as the filter strip.
+        if (finding.RuleId is not null)
         {
-            return ColorToken.ErrorViolet;
+            var category = IssueCategoryRegistry.CategoryForRuleId(finding.RuleId);
+            return category switch
+            {
+                IssueCategory.ContainerNaming => ColorToken.ErrorViolet,
+                IssueCategory.Track => ColorToken.WarningDelayTeal,
+                IssueCategory.FrameRate => ColorToken.FpsNtsc,
+                IssueCategory.VideoColor => ColorToken.ColorSpaceNon420,
+                IssueCategory.Chapter => ColorToken.WarningYellow,
+                _ => TokenForSeverity(finding.Level),
+            };
         }
 
         var d = finding.Description;
@@ -63,14 +70,17 @@ public static class LegacyColorRules
         }
 
         // Fallback by severity if description unknown
-        return finding.Level switch
+        return TokenForSeverity(finding.Level);
+    }
+
+    private static ColorToken TokenForSeverity(ErrorLevel level) =>
+        level switch
         {
             ErrorLevel.Error => ColorToken.ErrorRed,
             ErrorLevel.Warning => ColorToken.WarningYellow,
             ErrorLevel.Info => ColorToken.InfoGreenYellow,
             _ => ColorToken.None
         };
-    }
 
     /// <summary>Legacy InfoToForegroundConverter: TextCount &gt; 1 → blue.</summary>
     public static ColorToken RowForegroundToken(long textCount) =>

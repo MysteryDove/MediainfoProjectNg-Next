@@ -40,7 +40,7 @@ public class RawProjectionTests
     }
 
     [Fact]
-    public void AbsentVideoLanguage_IsUnverifiable_NotSilentPass()
+    public void AbsentVideoLanguage_IsTreatedAsUnd()
     {
         var path = "/media/[VCB-S] Show [Ma10p_1080p][x265_flac].mkv";
         var info = new MediaFileInfo(new GeneralInfo("Show", path, "Matroska", 0, 1, 1, 0, 0));
@@ -83,7 +83,7 @@ public class RawProjectionTests
 
         var eval = CollationEvaluator.Evaluate(info)
             .Single(e => e.RuleId == CollationRuleIds.TrackVideoLanguage);
-        Assert.Equal(RuleOutcome.Unverifiable, eval.Outcome);
+        Assert.Equal(RuleOutcome.Pass, eval.Outcome);
     }
 
     [Fact]

@@ -6,6 +6,11 @@ namespace MediainfoProjectNg.Next.Tests.Loading;
 
 public class MediaLoadServiceTests
 {
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
+    }
+
     private sealed class FakeReader : IMediaMetadataReader
     {
         public MediaFileInfo Read(string path) =>
@@ -103,7 +108,7 @@ public class MediaLoadServiceTests
             await File.WriteAllBytesAsync(mkv, [0]);
             string? seen = null;
             var svc = new MediaLoadService(new FakeReader());
-            await svc.LoadAsync([mkv], progress: new Progress<string>(p => seen = p));
+            await svc.LoadAsync([mkv], progress: new InlineProgress<string>(p => seen = p));
             Assert.Equal(mkv, seen);
         }
         finally
@@ -129,5 +134,60 @@ public class MediaLoadServiceTests
         {
             Directory.Delete(dir, true);
         }
+    }
+
+    [Fact]
+    public async Task MultipleFiles_LoadInParallel_AndReturnInEnumerationOrder()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "mpng-next-load-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var paths = Enumerable.Range(0, 8)
+                .Select(index => Path.Combine(dir, $"{index:D2}.mkv"))
+                .ToArray();
+            foreach (var path in paths)
+            {
+                await File.WriteAllBytesAsync(path, [0]);
+            }
+
+            var reader = new ConcurrencyReader();
+            var service = new MediaLoadService(reader);
+            var (infos, _) = await service.LoadAsync(paths);
+
+            Assert.True(reader.MaxConcurrency > 1, $"Expected parallel reads, saw {reader.MaxConcurrency}.");
+            Assert.Equal(paths, infos.Select(info => info.GeneralInfo.FullPath));
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    private sealed class ConcurrencyReader : IMediaMetadataReader
+    {
+        private int _active;
+        private int _maxConcurrency;
+
+        public int MaxConcurrency => _maxConcurrency;
+
+        public MediaFileInfo Read(string path)
+        {
+            var active = Interlocked.Increment(ref _active);
+            int observed;
+            do
+            {
+                observed = _maxConcurrency;
+            }
+            while (active > observed
+                   && Interlocked.CompareExchange(ref _maxConcurrency, active, observed) != observed);
+
+            Thread.Sleep(30);
+            Interlocked.Decrement(ref _active);
+            return new MediaFileInfo(new GeneralInfo(
+                Path.GetFileNameWithoutExtension(path), path, "Matroska", 0, 0, 0, 0, 0));
+        }
+
+        public string? GetLibraryVersion() => "Fake 1.0";
     }
 }

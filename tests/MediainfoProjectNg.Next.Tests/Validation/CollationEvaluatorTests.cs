@@ -210,15 +210,15 @@ public class CollationEvaluatorTests
     }
 
     [Fact]
-    public void ScanType_Interlaced_IsWarning()
+    public void ScanType_IsNotChecked()
     {
         var info = CreateRecognized();
         info.RawSnapshot = BuildRaw(info, 1920, 1080, "UND", "Yes", "JPN", "Yes",
             scanType: "Interlaced", colourRange: "Limited", matrix: "BT.709");
         var evals = CollationEvaluator.Evaluate(info);
         var scan = evals.Single(e => e.RuleId == CollationRuleIds.VideoScanType);
-        Assert.Equal(RuleOutcome.Violation, scan.Outcome);
-        Assert.Equal(ErrorLevel.Warning, scan.Severity);
+        Assert.Equal(RuleOutcome.NotApplicable, scan.Outcome);
+        Assert.False(scan.IsVisibleFinding);
     }
 
     [Fact]

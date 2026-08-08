@@ -12,9 +12,18 @@ namespace MediainfoProjectNg.Next.ViewModels;
 /// </summary>
 public sealed class MediaFileRowViewModel
 {
-    public MediaFileRowViewModel(MediaFileInfo model)
+    public MediaFileRowViewModel(MediaFileInfo model, int trackIndex = 0)
+        : this(model, trackIndex, sharedProjection: null)
+    {
+    }
+
+    private MediaFileRowViewModel(
+        MediaFileInfo model,
+        int trackIndex,
+        MediaFileRowViewModel? sharedProjection)
     {
         Model = model;
+        TrackIndex = trackIndex;
 
         var video = FirstVideo();
         FpsText = LegacyColorRules.FpsDisplayText(video);
@@ -26,9 +35,10 @@ public sealed class MediaFileRowViewModel
         RowBackgroundToken = LegacyColorRules.FirstFindingBackgroundToken(model.Findings);
         RowForegroundToken = LegacyColorRules.RowForegroundToken(model.GeneralInfo.TextCount);
 
-        IssueItems = IssueDisplayProjector.Project(model);
-        TooltipLines = IssueDisplayProjector.BuildTooltipLines(IssueItems);
-        TooltipText = TooltipLines.Count == 0 ? null : string.Join('\n', TooltipLines);
+        IssueItems = sharedProjection?.IssueItems ?? IssueDisplayProjector.Project(model);
+        TooltipLines = sharedProjection?.TooltipLines ?? IssueDisplayProjector.BuildTooltipLines(IssueItems);
+        TooltipText = sharedProjection?.TooltipText
+            ?? (TooltipLines.Count == 0 ? null : string.Join('\n', TooltipLines));
         HasTooltip = TooltipText is not null;
 
         // Legacy: no finding → White row; TextCount>1 → Blue fg else Black (including when selected).
@@ -53,6 +63,25 @@ public sealed class MediaFileRowViewModel
     }
 
     public MediaFileInfo Model { get; }
+    public int TrackIndex { get; }
+
+    public static IReadOnlyList<MediaFileRowViewModel> CreateRows(MediaFileInfo model)
+    {
+        var rowCount = Math.Max(1, Math.Max(model.AudioInfos.Count, model.SubInfos.Count));
+        var first = new MediaFileRowViewModel(model);
+        if (rowCount == 1)
+        {
+            return [first];
+        }
+
+        var rows = new List<MediaFileRowViewModel>(rowCount) { first };
+        for (var index = 1; index < rowCount; index++)
+        {
+            rows.Add(new MediaFileRowViewModel(model, index, first));
+        }
+
+        return rows;
+    }
 
     public IReadOnlyList<IssueDisplayItem> IssueItems { get; }
     public IReadOnlyList<string> TooltipLines { get; }
@@ -90,55 +119,32 @@ public sealed class MediaFileRowViewModel
     public string VideoLanguage => FirstVideo()?.Language ?? string.Empty;
     public string VideoDefault => FirstVideo()?.Default ?? string.Empty;
 
-    public string Audio1Format => AudioAt(0)?.Format ?? string.Empty;
+    public string AudioFormat => AudioAt(TrackIndex)?.Format ?? string.Empty;
 
-    public string Audio1BitDepth
+    public string AudioBitDepth
     {
         get
         {
-            var a = AudioAt(0);
+            var a = AudioAt(TrackIndex);
             return a is null ? string.Empty : a.BitDepth.ToString();
         }
     }
 
-    public string Audio1Bitrate
+    public string AudioBitrate
     {
         get
         {
-            var a = AudioAt(0);
+            var a = AudioAt(TrackIndex);
             return a is null ? string.Empty : a.Bitrate.ToString();
         }
     }
 
-    public string Audio1Language => AudioAt(0)?.Language ?? string.Empty;
-    public string Audio1Default => AudioAt(0)?.Default ?? string.Empty;
+    public string AudioLanguage => AudioAt(TrackIndex)?.Language ?? string.Empty;
+    public string AudioDefault => AudioAt(TrackIndex)?.Default ?? string.Empty;
 
-    public string Audio2Format => AudioAt(1)?.Format ?? string.Empty;
-
-    public string Audio2BitDepth
-    {
-        get
-        {
-            var a = AudioAt(1);
-            return a is null ? string.Empty : a.BitDepth.ToString();
-        }
-    }
-
-    public string Audio2Bitrate
-    {
-        get
-        {
-            var a = AudioAt(1);
-            return a is null ? string.Empty : a.Bitrate.ToString();
-        }
-    }
-
-    public string Audio2Language => AudioAt(1)?.Language ?? string.Empty;
-    public string Audio2Default => AudioAt(1)?.Default ?? string.Empty;
-
-    public string Sub1Format => SubAt(0)?.Format ?? string.Empty;
-    public string Sub1Language => SubAt(0)?.Language ?? string.Empty;
-    public string Sub1Default => SubAt(0)?.Default ?? string.Empty;
+    public string SubtitleFormat => SubAt(TrackIndex)?.Format ?? string.Empty;
+    public string SubtitleLanguage => SubAt(TrackIndex)?.Language ?? string.Empty;
+    public string SubtitleDefault => SubAt(TrackIndex)?.Default ?? string.Empty;
 
     public string ChapterState => Model.GeneralInfo.ChapterCount != 0 ? "有" : string.Empty;
     public string ChapterLanguage { get; }

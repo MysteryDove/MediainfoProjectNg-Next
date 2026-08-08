@@ -73,6 +73,18 @@ public class MainWindowLayoutTests
     }
 
     [Fact]
+    public void FileGrid_UsesTrackRows_AndSuppressesCellSelectionBackground()
+    {
+        var axaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "MediainfoProjectNg.Next", "Views", "MainWindow.axaml"));
+
+        Assert.Contains("Selector=\"DataGridCell:selected\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Property=\"Background\" Value=\"Transparent\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Header=\"音轨\" Binding=\"{Binding AudioFormat}\"", axaml, StringComparison.Ordinal);
+        Assert.Contains("Header=\"字幕\" Binding=\"{Binding SubtitleFormat}\"", axaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("Header=\"#2音轨\"", axaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FilterStrip_IsInLeftColumn_AboveFileGrid()
     {
         var doc = LoadDocument();

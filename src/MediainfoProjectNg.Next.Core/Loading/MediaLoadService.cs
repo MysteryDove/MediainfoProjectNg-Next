@@ -7,7 +7,7 @@ using MediainfoProjectNg.Next.Domain.Validation;
 namespace MediainfoProjectNg.Next.Core.Loading;
 
 /// <summary>
-/// Ports legacy Utils.Load / LoadFile sequential workflow.
+/// Loads independent media files with bounded parallelism while preserving input order.
 /// Filter polarity: skip when <paramref name="filter"/> returns true (legacy: oldList.Contains).
 /// Progress uses <see cref="IProgress{T}"/>; construct <see cref="Progress{T}"/> on the UI thread
 /// so Report posts to the captured SynchronizationContext.
@@ -15,6 +15,7 @@ namespace MediainfoProjectNg.Next.Core.Loading;
 /// </summary>
 public sealed class MediaLoadService
 {
+    private const int MaxParallelReads = 4;
     private readonly IMediaMetadataReader _reader;
     private readonly ValidationProfile _profile;
 
@@ -32,23 +33,29 @@ public sealed class MediaLoadService
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var fileInfos = new List<MediaFileInfo>();
+        var candidates = new List<string>();
         var pathComparer = OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
         var seen = new HashSet<string>(pathComparer);
         var sw = Stopwatch.StartNew();
 
-        bool ShouldSkip(string path) => !seen.Add(Path.GetFullPath(path)) || filter?.Invoke(path) == true;
+        void AddCandidate(string path)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (FolderEnumeration.IsExcludedExtension(path)
+                || !seen.Add(Path.GetFullPath(path))
+                || filter?.Invoke(path) == true)
+            {
+                return;
+            }
+
+            candidates.Add(path);
+        }
 
         foreach (var file in urls.Where(File.Exists))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var info = await LoadFileAsync(file, ShouldSkip, progress, cancellationToken).ConfigureAwait(false);
-            if (info is not null)
-            {
-                fileInfos.Add(info);
-            }
+            AddCandidate(file);
         }
 
         foreach (var dir in urls.Where(Directory.Exists))
@@ -61,17 +68,30 @@ public sealed class MediaLoadService
 
             foreach (var file in FolderEnumeration.EnumerateFolder(dir))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var info = await LoadFileAsync(file, ShouldSkip, progress, cancellationToken).ConfigureAwait(false);
-                if (info is not null)
-                {
-                    fileInfos.Add(info);
-                }
+                AddCandidate(file);
             }
         }
 
+        var loaded = new MediaFileInfo?[candidates.Count];
+        var parallelOptions = new ParallelOptions
+        {
+            CancellationToken = cancellationToken,
+            MaxDegreeOfParallelism = MaxParallelReads,
+        };
+        await Parallel.ForEachAsync(
+            Enumerable.Range(0, candidates.Count),
+            parallelOptions,
+            (index, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                var path = candidates[index];
+                progress?.Report(path);
+                loaded[index] = ReadAndValidate(path);
+                return ValueTask.CompletedTask;
+            }).ConfigureAwait(false);
+
         sw.Stop();
-        return (fileInfos, sw.ElapsedMilliseconds);
+        return (loaded.Where(info => info is not null).Cast<MediaFileInfo>().ToList(), sw.ElapsedMilliseconds);
     }
 
     public async Task<MediaFileInfo?> LoadFileAsync(
@@ -102,9 +122,14 @@ public sealed class MediaLoadService
         return await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var info = _reader.Read(path);
-            info.SetFindings(MediaValidator.CheckFile(info, _profile));
-            return info;
+            return ReadAndValidate(path);
         }, cancellationToken).ConfigureAwait(false);
+    }
+
+    private MediaFileInfo ReadAndValidate(string path)
+    {
+        var info = _reader.Read(path);
+        info.SetFindings(MediaValidator.CheckFile(info, _profile));
+        return info;
     }
 }
